@@ -1,11 +1,12 @@
 ---
-description: 
-globs: 
+description:
+globs:
 alwaysApply: true
 ---
-# AI Rules for {app-name}
 
-{project-description}
+# AI Rules for Home Budget Planner
+
+Home Budget Planner is a web application designed with a “mobile-first” approach, aimed at simplifying the process of planning and tracking monthly household expenses. The application allows users to add up the monthly income of all household members, create a budget by allocating funds to predefined expense categories, and then monitor the implementation of this plan on an ongoing basis.
 
 ## Tech Stack
 
@@ -28,7 +29,7 @@ When introducing changes to the project, always follow the directory structure b
 - `./src/types.ts` - Shared types for backend and frontend (Entities, DTOs)
 - `./src/components` - Client-side components written in Astro (static) and React (dynamic)
 - `./src/components/ui` - Client-side components from Shadcn/ui
-- `./src/lib` - Services and helpers 
+- `./src/lib` - Services and helpers
 - `./src/assets` - static internal assets
 - `./public` - public assets
 
