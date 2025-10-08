@@ -13,7 +13,7 @@ stable
 security definer
 as $$
   select h.id 
-  from households h 
+  from public.households h 
   where h.user_id = auth.uid() 
   limit 1;
 $$;
@@ -29,7 +29,7 @@ as $$
 begin
   -- Insert default expense categories for the household
   -- These categories cover common household expenses and can be customized by users later
-  insert into categories (household_id, name) values
+  insert into public.categories (household_id, name) values
     (NEW.id, 'Żywność'),           -- Food
     (NEW.id, 'Transport'),         -- Transportation
     (NEW.id, 'Mieszkanie'),        -- Housing
