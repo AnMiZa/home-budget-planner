@@ -1,0 +1,120 @@
+import type { supabaseClient } from "../../db/supabase.client";
+import type { HouseholdMemberDto, PaginationMetaDto, HouseholdMembersListResponseDto } from "../../types";
+
+export type SupabaseClientType = typeof supabaseClient;
+
+export interface ListMembersOptions {
+  includeInactive?: boolean;
+  page?: number;
+  pageSize?: number;
+  sort?: "fullName" | "createdAt";
+}
+
+/**
+ * Service for managing household members operations.
+ */
+export class HouseholdMembersService {
+  constructor(private supabase: SupabaseClientType) {}
+
+  /**
+   * Lists household members for the specified user with pagination and filtering.
+   *
+   * @param userId - The ID of the user whose household members to retrieve
+   * @param options - Options for filtering, pagination, and sorting
+   * @returns Promise resolving to paginated list of household members
+   * @throws Error if household not found or database error occurs
+   */
+  async listMembers(userId: string, options: ListMembersOptions = {}): Promise<HouseholdMembersListResponseDto> {
+    const { includeInactive = false, page = 1, pageSize = 20, sort = "fullName" } = options;
+
+    // First, get the household_id for the user
+    const { data: householdData, error: householdError } = await this.supabase
+      .from("households")
+      .select("id")
+      .eq("user_id", userId)
+      .single();
+
+    if (householdError) {
+      if (householdError.code === "PGRST116") {
+        // No rows returned - household not found
+        throw new Error("HOUSEHOLD_NOT_FOUND");
+      }
+      // Other database errors
+      console.error("Database error while fetching household:", householdError);
+      throw new Error("MEMBERS_LIST_FAILED");
+    }
+
+    if (!householdData) {
+      throw new Error("HOUSEHOLD_NOT_FOUND");
+    }
+
+    const householdId = householdData.id;
+
+    // Calculate offset for pagination
+    const offset = (page - 1) * pageSize;
+
+    // Build the query for household members
+    let query = this.supabase
+      .from("household_members")
+      .select("id, full_name, is_active, created_at, updated_at", { count: "exact" })
+      .eq("household_id", householdId);
+
+    // Apply active/inactive filter
+    if (!includeInactive) {
+      query = query.eq("is_active", true);
+    }
+
+    // Apply sorting
+    if (sort === "fullName") {
+      query = query.order("full_name", { ascending: true });
+    } else if (sort === "createdAt") {
+      query = query.order("created_at", { ascending: true });
+    }
+
+    // Apply pagination
+    query = query.range(offset, offset + pageSize - 1);
+
+    // Execute the query
+    const { data: membersData, error: membersError, count } = await query;
+
+    if (membersError) {
+      console.error("Database error while fetching household members:", membersError);
+      throw new Error("MEMBERS_LIST_FAILED");
+    }
+
+    // Map database rows to DTOs
+    const members: HouseholdMemberDto[] = (membersData || []).map((member) => ({
+      id: member.id,
+      fullName: member.full_name,
+      isActive: member.is_active,
+      createdAt: member.created_at,
+      updatedAt: member.updated_at,
+    }));
+
+    // Calculate pagination metadata
+    const totalItems = count || 0;
+    const totalPages = totalItems > 0 ? Math.ceil(totalItems / pageSize) : 0;
+
+    const meta: PaginationMetaDto = {
+      page,
+      pageSize,
+      totalItems,
+      totalPages,
+    };
+
+    return {
+      data: members,
+      meta,
+    };
+  }
+}
+
+/**
+ * Factory function to create a HouseholdMembersService instance.
+ *
+ * @param supabase - Supabase client instance
+ * @returns New HouseholdMembersService instance
+ */
+export function createHouseholdMembersService(supabase: SupabaseClientType): HouseholdMembersService {
+  return new HouseholdMembersService(supabase);
+}
