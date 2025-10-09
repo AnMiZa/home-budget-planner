@@ -1,5 +1,5 @@
 import type { supabaseClient } from "../../db/supabase.client";
-import type { HouseholdDto, DefaultCategoryDto } from "../../types";
+import type { HouseholdDto, DefaultCategoryDto, UpdateHouseholdCommand } from "../../types";
 
 export type SupabaseClientType = typeof supabaseClient;
 
@@ -87,6 +87,61 @@ export class HouseholdService {
     }
 
     return result;
+  }
+
+  /**
+   * Updates the household name for the specified user.
+   *
+   * @param userId - The ID of the user whose household to update
+   * @param command - The update command containing the new name
+   * @returns Promise resolving to updated household data
+   * @throws Error if household not found, update failed, or database error occurs
+   */
+  async updateHouseholdName(userId: string, command: UpdateHouseholdCommand): Promise<HouseholdDto> {
+    // Validate input
+    if (!userId?.trim()) {
+      throw new Error("INVALID_USER_ID");
+    }
+
+    if (!command.name?.trim()) {
+      throw new Error("INVALID_NAME");
+    }
+
+    // Normalize the name (trim whitespace)
+    const normalizedName = command.name.trim();
+
+    // Update household name for the user
+    const { data: updatedData, error: updateError } = await this.supabase
+      .from("households")
+      .update({
+        name: normalizedName,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("user_id", userId)
+      .select("id, name, created_at, updated_at")
+      .single();
+
+    if (updateError) {
+      if (updateError.code === "PGRST116") {
+        // No rows updated - household not found for this user
+        throw new Error("HOUSEHOLD_NOT_FOUND");
+      }
+      // Other database errors
+      console.error("Database error during household update:", updateError);
+      throw new Error("HOUSEHOLD_UPDATE_FAILED");
+    }
+
+    if (!updatedData) {
+      throw new Error("HOUSEHOLD_NOT_FOUND");
+    }
+
+    // Map database row to DTO
+    return {
+      id: updatedData.id,
+      name: updatedData.name,
+      createdAt: updatedData.created_at,
+      updatedAt: updatedData.updated_at,
+    };
   }
 }
 
