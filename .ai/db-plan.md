@@ -26,6 +26,7 @@
   - `name TEXT NOT NULL CHECK (char_length(name) BETWEEN 1 AND 100)`
   - `created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()`
   - `updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()`
+  - `UNIQUE (id, household_id)`
   - `UNIQUE (household_id, lower(name))`
 
 - `budgets`
@@ -104,12 +105,20 @@
 4. Zasady PostgreSQL (RLS)
 
 - Funkcja pomocnicza: `CREATE FUNCTION get_current_household_id() RETURNS uuid LANGUAGE sql STABLE SECURITY DEFINER AS $$ SELECT h.id FROM households h WHERE h.user_id = auth.uid() LIMIT 1; $$;`
+- Funkcja triggerowa: `CREATE FUNCTION set_updated_at() RETURNS trigger LANGUAGE plpgsql AS $$ BEGIN NEW.updated_at = NOW(); RETURN NEW; END; $$;`
+- Funkcja triggerowa do domyślnych kategorii: `CREATE FUNCTION seed_default_categories() RETURNS trigger LANGUAGE plpgsql SECURITY DEFINER AS $$ BEGIN INSERT INTO categories (household_id, name) VALUES ...; RETURN NEW; END; $$;`
 - Na każdej tabeli użytkownika: `ALTER TABLE <table> ENABLE ROW LEVEL SECURITY;`
-- Polityki przykładowe (dla każdej tabeli `households`, `household_members`, `categories`, `budgets`, `incomes`, `planned_expenses`, `transactions`):
+- Polityki bezpieczeństwa (dla każdej tabeli `household_members`, `categories`, `budgets`, `incomes`, `planned_expenses`, `transactions`):
   - `CREATE POLICY select_{table}` FOR SELECT USING (household_id = get_current_household_id());`
-  - `CREATE POLICY modify_{table}` FOR INSERT, UPDATE, DELETE USING (household_id = get_current_household_id()) WITH CHECK (household_id = get_current_household_id());`
-- Dla tabeli `households`: polityki korzystają z warunku `id = get_current_household_id()`.
-- Serwisowe role Supabase (`service_role`, `supabase_admin`) otrzymują uprawnienia `BYPASSRLS`.
+  - `CREATE POLICY insert_{table}` FOR INSERT WITH CHECK (household_id = get_current_household_id());`
+  - `CREATE POLICY update_{table}` FOR UPDATE USING (household_id = get_current_household_id()) WITH CHECK (household_id = get_current_household_id());`
+  - `CREATE POLICY delete_{table}` FOR DELETE USING (household_id = get_current_household_id());`
+- Dla tabeli `households`:
+  - `CREATE POLICY select_households` FOR SELECT USING (id = get_current_household_id());`
+  - `CREATE POLICY insert_households` FOR INSERT WITH CHECK (user_id = auth.uid());`
+  - `CREATE POLICY update_households` FOR UPDATE USING (id = get_current_household_id()) WITH CHECK (id = get_current_household_id());`
+  - `CREATE POLICY delete_households` FOR DELETE USING (id = get_current_household_id());`
+- Rola `service_role` otrzymuje pełne uprawnienia do schematu `public` oraz `ALTER USER service_role SET row_security = off;`.
 
 5. Dodatkowe uwagi
 
