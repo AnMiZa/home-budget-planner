@@ -107,6 +107,7 @@ export interface BudgetSummaryTotalsDto {
 export type BudgetListItemDto = BudgetSummaryTotalsDto & {
   readonly id: BudgetRow["id"];
   readonly month: BudgetRow["month"];
+  readonly note: BudgetRow["note"];
   readonly createdAt: BudgetRow["created_at"];
   readonly updatedAt: BudgetRow["updated_at"];
   readonly summary?: BudgetSummaryTotalsDto & { readonly progress?: number };
@@ -173,6 +174,7 @@ export interface BudgetCreatedDto {
 export interface BudgetDetailDto {
   readonly id: BudgetRow["id"];
   readonly month: BudgetRow["month"];
+  readonly note: BudgetRow["note"];
   readonly createdAt: BudgetRow["created_at"];
   readonly updatedAt: BudgetRow["updated_at"];
   readonly incomes: readonly BudgetIncomeDto[];
@@ -182,6 +184,7 @@ export interface BudgetDetailDto {
 
 export interface CreateBudgetCommand {
   readonly month: NonNullable<BudgetInsert["month"]>;
+  readonly note?: BudgetInsert["note"];
   readonly incomes?: readonly BudgetIncomeCommandItem[];
   readonly plannedExpenses?: readonly BudgetPlannedExpenseCommandItem[];
 }

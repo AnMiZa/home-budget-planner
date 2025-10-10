@@ -26,6 +26,7 @@ export interface Database {
           household_id: string;
           id: string;
           month: string;
+          note: string | null;
           updated_at: string;
         };
         Insert: {
@@ -33,6 +34,7 @@ export interface Database {
           household_id: string;
           id?: string;
           month: string;
+          note?: string | null;
           updated_at?: string;
         };
         Update: {
@@ -40,6 +42,7 @@ export interface Database {
           household_id?: string;
           id?: string;
           month?: string;
+          note?: string | null;
           updated_at?: string;
         };
         Relationships: [

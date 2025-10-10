@@ -40,6 +40,18 @@ const createBudgetSchema = z
       .string()
       .trim()
       .regex(/^\d{4}-\d{2}(-\d{2})?$/, "Month must be in YYYY-MM or YYYY-MM-DD format"),
+    note: z
+      .string()
+      .nullable()
+      .optional()
+      .transform((val) => {
+        if (val === null || val === undefined) return undefined;
+        const trimmed = val.trim();
+        return trimmed === "" ? undefined : trimmed;
+      })
+      .refine((val) => val === undefined || val.length <= 500, {
+        message: "Note must not exceed 500 characters",
+      }),
     incomes: z.array(incomeItemSchema).optional().default([]),
     plannedExpenses: z.array(plannedExpenseItemSchema).optional().default([]),
   })
@@ -226,6 +238,7 @@ export const GET: APIRoute = async ({ request, locals }) => {
  *
  * Request Body:
  * - month (string, required): Month in YYYY-MM or YYYY-MM-DD format
+ * - note (string, optional): Optional note/description for the budget (max 500 characters)
  * - incomes (array, optional): Array of income items with householdMemberId and amount
  * - plannedExpenses (array, optional): Array of planned expense items with categoryId and limitAmount
  *
@@ -266,6 +279,10 @@ export const POST: APIRoute = async ({ request, locals }) => {
         return createErrorResponse("INVALID_MONTH_FORMAT", firstError.message, 400);
       }
 
+      if (firstError?.path.includes("note")) {
+        return createErrorResponse("INVALID_PAYLOAD", firstError.message, 400);
+      }
+
       if (firstError?.path.includes("incomes")) {
         return createErrorResponse("INVALID_PAYLOAD", firstError.message, 400);
       }
@@ -277,7 +294,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
       return createErrorResponse("INVALID_PAYLOAD", firstError?.message || "Invalid request payload", 400);
     }
 
-    const { month, incomes, plannedExpenses } = validationResult.data;
+    const { month, note, incomes, plannedExpenses } = validationResult.data;
 
     // Get Supabase client from locals
     const supabase = locals.supabase;
@@ -307,6 +324,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
     try {
       const command: CreateBudgetCommand = {
         month,
+        note,
         incomes,
         plannedExpenses,
       };

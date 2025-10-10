@@ -1,7 +1,7 @@
 import type { APIRoute } from "astro";
 import { z } from "zod";
 import { createBudgetsService } from "../../../lib/services/budgets.service";
-import type { ApiErrorDto, BudgetDetailDto } from "../../../types";
+import type { ApiErrorDto, BudgetDetailDto, UpdateBudgetCommand } from "../../../types";
 
 export const prerender = false;
 
@@ -23,6 +23,27 @@ const querySchema = z.object({
     .default("false")
     .transform((val) => val === "true"),
 });
+
+// Validation schema for PATCH request body
+const patchBudgetSchema = z
+  .object({
+    note: z
+      .string()
+      .nullable()
+      .optional()
+      .transform((val) => {
+        if (val === null || val === undefined) return undefined;
+        const trimmed = val.trim();
+        return trimmed === "" ? undefined : trimmed;
+      })
+      .refine((val) => val === undefined || val.length <= 500, {
+        message: "Note must not exceed 500 characters",
+      }),
+  })
+  .strict()
+  .refine((data) => Object.keys(data).length > 0, {
+    message: "Request body must contain at least one field to update",
+  });
 
 /**
  * Creates a standardized API error response.
@@ -57,6 +78,19 @@ function createSuccessResponse(data: BudgetDetailDto): Response {
 }
 
 /**
+ * Creates a successful API response for budget update.
+ */
+function createPatchSuccessResponse(data: BudgetDetailDto): Response {
+  return new Response(JSON.stringify(data), {
+    status: 200,
+    headers: {
+      "Content-Type": "application/json; charset=utf-8",
+      "X-Result-Code": "BUDGET_UPDATED",
+    },
+  });
+}
+
+/**
  * GET /api/budgets/{budgetId}
  *
  * Retrieves detailed information about a specific budget for the currently authenticated user's household.
@@ -83,11 +117,7 @@ export const GET: APIRoute = async ({ params, request, locals }) => {
     if (!paramsResult.success) {
       console.warn("Budget ID validation failed:", paramsResult.error);
       const firstError = paramsResult.error.errors[0];
-      return createErrorResponse(
-        "INVALID_BUDGET_ID",
-        firstError?.message || "Invalid budget ID format",
-        400
-      );
+      return createErrorResponse("INVALID_BUDGET_ID", firstError?.message || "Invalid budget ID format", 400);
     }
 
     const { budgetId } = paramsResult.data;
@@ -161,11 +191,130 @@ export const GET: APIRoute = async ({ params, request, locals }) => {
 
       // Unexpected service error
       console.error("Unexpected service error:", serviceError);
-      return createErrorResponse("BUDGET_FETCH_FAILED", "An unexpected error occurred while fetching budget detail", 500);
+      return createErrorResponse(
+        "BUDGET_FETCH_FAILED",
+        "An unexpected error occurred while fetching budget detail",
+        500
+      );
     }
   } catch (error) {
     // Catch-all for unexpected errors
     console.error("Unexpected error in GET /api/budgets/[budgetId]:", error);
     return createErrorResponse("BUDGET_FETCH_FAILED", "An internal server error occurred", 500);
+  }
+};
+
+/**
+ * PATCH /api/budgets/{budgetId}
+ *
+ * Updates mutable metadata of a budget that belongs to the authenticated user's household.
+ * Currently supports updating the 'note' field, extensible for future metadata fields.
+ *
+ * Path Parameters:
+ * - budgetId (string, required): UUID of the budget to update
+ *
+ * Request Body:
+ * - note (string|null, optional): Optional note/description for the budget (max 500 characters)
+ *
+ * Responses:
+ * - 200: Budget updated successfully with X-Result-Code: BUDGET_UPDATED
+ * - 400: Invalid request payload or state transition (INVALID_PAYLOAD, INVALID_STATE_TRANSITION)
+ * - 401: User not authenticated (UNAUTHENTICATED)
+ * - 404: Budget not found for user's household (BUDGET_NOT_FOUND)
+ * - 500: Internal server error (BUDGET_UPDATE_FAILED)
+ */
+export const PATCH: APIRoute = async ({ params, request, locals }) => {
+  try {
+    // Validate path parameters
+    const paramsResult = paramsSchema.safeParse(params);
+    if (!paramsResult.success) {
+      console.warn("Budget ID validation failed:", paramsResult.error);
+      const firstError = paramsResult.error.errors[0];
+      return createErrorResponse("INVALID_PAYLOAD", firstError?.message || "Invalid budget ID format", 400);
+    }
+
+    const { budgetId } = paramsResult.data;
+
+    // Parse and validate request body
+    let requestBody;
+    try {
+      requestBody = await request.json();
+    } catch (parseError) {
+      console.warn("JSON parsing failed:", parseError);
+      return createErrorResponse("INVALID_PAYLOAD", "Invalid JSON in request body", 400);
+    }
+
+    const bodyResult = patchBudgetSchema.safeParse(requestBody);
+    if (!bodyResult.success) {
+      console.warn("Request body validation failed:", bodyResult.error);
+      const firstError = bodyResult.error.errors[0];
+      return createErrorResponse("INVALID_PAYLOAD", firstError?.message || "Invalid request body", 400);
+    }
+
+    const updateCommand: UpdateBudgetCommand = bodyResult.data;
+
+    // Get Supabase client from locals
+    const supabase = locals.supabase;
+    if (!supabase) {
+      console.error("Supabase client not available in locals");
+      return createErrorResponse("BUDGET_UPDATE_FAILED", "Database connection not available", 500);
+    }
+
+    // Get authenticated user
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser();
+
+    if (authError) {
+      console.error("Authentication error:", authError);
+      return createErrorResponse("UNAUTHENTICATED", "Authentication failed", 401);
+    }
+
+    if (!user) {
+      return createErrorResponse("UNAUTHENTICATED", "User not authenticated", 401);
+    }
+
+    // Create budgets service and update budget metadata
+    const budgetsService = createBudgetsService(supabase);
+
+    try {
+      const result = await budgetsService.updateBudgetMetadata(user.id, budgetId, updateCommand);
+
+      console.log(`Budget metadata updated successfully for user ${user.id}: budget ${budgetId}`);
+      return createPatchSuccessResponse(result);
+    } catch (serviceError) {
+      const errorMessage = serviceError instanceof Error ? serviceError.message : "Unknown error";
+
+      // Map service errors to HTTP responses
+      if (errorMessage === "HOUSEHOLD_NOT_FOUND") {
+        return createErrorResponse("BUDGET_NOT_FOUND", "No household found for the authenticated user", 404);
+      }
+
+      if (errorMessage === "BUDGET_NOT_FOUND") {
+        return createErrorResponse("BUDGET_NOT_FOUND", "Budget not found or not accessible", 404);
+      }
+
+      if (errorMessage === "INVALID_STATE_TRANSITION") {
+        return createErrorResponse("INVALID_STATE_TRANSITION", "Budget cannot be modified in its current state", 400);
+      }
+
+      if (errorMessage === "BUDGET_UPDATE_FAILED") {
+        console.error("Database error while updating budget metadata:", serviceError);
+        return createErrorResponse("BUDGET_UPDATE_FAILED", "Failed to update budget metadata", 500);
+      }
+
+      // Unexpected service error
+      console.error("Unexpected service error:", serviceError);
+      return createErrorResponse(
+        "BUDGET_UPDATE_FAILED",
+        "An unexpected error occurred while updating budget metadata",
+        500
+      );
+    }
+  } catch (error) {
+    // Catch-all for unexpected errors
+    console.error("Unexpected error in PATCH /api/budgets/[budgetId]:", error);
+    return createErrorResponse("BUDGET_UPDATE_FAILED", "An internal server error occurred", 500);
   }
 };

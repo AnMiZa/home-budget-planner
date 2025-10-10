@@ -12,6 +12,7 @@ import type {
   BudgetSummaryDto,
   BudgetCategorySummaryDto,
   BudgetCategorySummaryStatus,
+  UpdateBudgetCommand,
 } from "../../types";
 
 export type SupabaseClientType = typeof supabaseClient;
@@ -76,7 +77,7 @@ export class BudgetsService {
     // Build the query for budgets
     let query = this.supabase
       .from("budgets")
-      .select("id, month, created_at, updated_at", { count: "exact" })
+      .select("id, month, note, created_at, updated_at", { count: "exact" })
       .eq("household_id", householdId);
 
     // Apply month filter if provided
@@ -135,6 +136,7 @@ export class BudgetsService {
     let budgets: BudgetListItemDto[] = budgetsData.map((budget) => ({
       id: budget.id,
       month: budget.month,
+      note: budget.note,
       createdAt: budget.created_at,
       updatedAt: budget.updated_at,
       totalIncome: 0,
@@ -192,7 +194,7 @@ export class BudgetsService {
    * @throws Error if household not found, month conflict, invalid references, or database error occurs
    */
   async createBudget(userId: string, command: CreateBudgetCommand): Promise<BudgetCreatedDto> {
-    const { month, incomes = [], plannedExpenses = [] } = command;
+    const { month, note, incomes = [], plannedExpenses = [] } = command;
 
     // First, get the household_id for the user
     const { data: householdData, error: householdError } = await this.supabase
@@ -231,12 +233,26 @@ export class BudgetsService {
       );
     }
 
+    // Normalize note field
+    let normalizedNote: string | null | undefined = note;
+    if (normalizedNote !== null && normalizedNote !== undefined) {
+      normalizedNote = normalizedNote.trim();
+      if (normalizedNote === "") {
+        normalizedNote = null;
+      }
+      // Additional length check (should be caught by validation, but defensive programming)
+      if (normalizedNote && normalizedNote.length > 500) {
+        normalizedNote = normalizedNote.substring(0, 500);
+      }
+    }
+
     // Insert the new budget
     const { data: budgetData, error: insertError } = await this.supabase
       .from("budgets")
       .insert({
         household_id: householdId,
         month: normalizedMonth,
+        note: normalizedNote,
       })
       .select("id, month, created_at")
       .single();
@@ -350,7 +366,7 @@ export class BudgetsService {
     // Fetch the budget and verify it belongs to the user's household
     const { data: budgetData, error: budgetError } = await this.supabase
       .from("budgets")
-      .select("id, month, created_at, updated_at")
+      .select("id, month, note, created_at, updated_at")
       .eq("id", budgetId)
       .eq("household_id", householdId)
       .single();
@@ -403,6 +419,7 @@ export class BudgetsService {
       return {
         id: budgetData.id,
         month: budgetData.month,
+        note: budgetData.note,
         createdAt: budgetData.created_at,
         updatedAt: budgetData.updated_at,
         incomes: incomesData,
@@ -833,6 +850,140 @@ export class BudgetsService {
 
     // If all else fails, return as-is (will likely cause validation error later)
     return month;
+  }
+
+  /**
+   * Updates mutable metadata of a budget that belongs to the authenticated user's household.
+   * Currently supports updating the 'note' field.
+   *
+   * @param userId - The ID of the user whose budget to update
+   * @param budgetId - The ID of the budget to update
+   * @param command - The update command containing the fields to update
+   * @returns Promise resolving to updated budget detail
+   * @throws Error if household not found, budget not found, invalid state transition, or database error occurs
+   */
+  async updateBudgetMetadata(userId: string, budgetId: string, command: UpdateBudgetCommand): Promise<BudgetDetailDto> {
+    // First, get the household_id for the user
+    const { data: household, error: householdError } = await this.supabase
+      .from("households")
+      .select("id")
+      .eq("user_id", userId)
+      .maybeSingle();
+
+    if (householdError) {
+      console.error("Database error while fetching household:", householdError);
+      throw new Error("BUDGET_UPDATE_FAILED");
+    }
+
+    if (!household) {
+      throw new Error("HOUSEHOLD_NOT_FOUND");
+    }
+
+    const householdId = household.id;
+
+    // Ensure budget exists for the household and get current state
+    const { data: existingBudget, error: budgetCheckError } = await this.supabase
+      .from("budgets")
+      .select("id")
+      .eq("id", budgetId)
+      .eq("household_id", householdId)
+      .maybeSingle();
+
+    if (budgetCheckError) {
+      console.error("Database error while checking budget existence:", budgetCheckError);
+      throw new Error("BUDGET_UPDATE_FAILED");
+    }
+
+    if (!existingBudget) {
+      throw new Error("BUDGET_NOT_FOUND");
+    }
+
+    // TODO: Add state validation when budget status is implemented
+    // For now, we allow all updates (placeholder check)
+    // if (existingBudget.status === 'finalized' || existingBudget.status === 'locked') {
+    //   throw new Error("INVALID_STATE_TRANSITION");
+    // }
+
+    // Normalize note field
+    let normalizedNote: string | null | undefined = command.note;
+    if (normalizedNote !== null && normalizedNote !== undefined) {
+      normalizedNote = normalizedNote.trim();
+      if (normalizedNote === "") {
+        normalizedNote = null;
+      }
+      // Additional length check (should be caught by validation, but defensive programming)
+      if (normalizedNote && normalizedNote.length > 500) {
+        normalizedNote = normalizedNote.substring(0, 500);
+      }
+    }
+
+    // Update the budget and fetch updated data in one query
+    const { data: updateResult, error: updateError } = await this.supabase
+      .from("budgets")
+      .update({
+        note: normalizedNote,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", budgetId)
+      .eq("household_id", householdId)
+      .select("id, month, note, created_at, updated_at");
+
+    if (updateError) {
+      console.error("Database error while updating budget:", updateError);
+
+      // Check for constraint violations (e.g., note length)
+      if (updateError.code === "23514") {
+        // CHECK constraint violation
+        throw new Error("INVALID_PAYLOAD");
+      }
+
+      throw new Error("BUDGET_UPDATE_FAILED");
+    }
+
+    if (!updateResult || updateResult.length === 0) {
+      // This shouldn't happen if our checks above passed, but defensive programming
+      throw new Error("BUDGET_NOT_FOUND");
+    }
+
+    const updatedBudget = updateResult[0];
+
+    // Fetch all related data in parallel (optimized - avoid extra household lookup)
+    try {
+      const [incomesData, plannedExpensesData] = await Promise.all([
+        this.getBudgetIncomes(budgetId, householdId, false), // includeInactiveMembers = false for PATCH
+        this.getBudgetPlannedExpenses(budgetId, householdId),
+      ]);
+
+      // Calculate summary totals (no transactions for PATCH response)
+      const totalIncome = incomesData.reduce((sum, income) => sum + income.amount, 0);
+      const totalPlanned = plannedExpensesData.reduce((sum, expense) => sum + expense.limitAmount, 0);
+      const totalSpent = 0; // No transactions included in PATCH response
+      const freeFunds = totalIncome - totalPlanned;
+      const progress = totalIncome > 0 ? (totalSpent / totalIncome) * 100 : 0;
+
+      // Build summary object (simplified for PATCH - no per-category data)
+      const summary: BudgetSummaryDto = {
+        totalIncome,
+        totalPlanned,
+        totalSpent,
+        freeFunds,
+        progress,
+      };
+
+      return {
+        id: updatedBudget.id,
+        month: updatedBudget.month,
+        note: updatedBudget.note,
+        createdAt: updatedBudget.created_at,
+        updatedAt: updatedBudget.updated_at,
+        incomes: incomesData,
+        plannedExpenses: plannedExpensesData,
+        summary,
+      };
+    } catch (detailError) {
+      console.error("Error fetching updated budget detail data:", detailError);
+      throw new Error("BUDGET_UPDATE_FAILED");
+    }
   }
 }
 
