@@ -173,11 +173,12 @@ export class BudgetsService {
 
   /**
    * Creates a new budget for the specified user's household.
+   * Optionally creates associated incomes and planned expenses in a single transaction.
    *
    * @param userId - The ID of the user creating the budget
    * @param command - The budget creation command
    * @returns Promise resolving to the created budget DTO
-   * @throws Error if household not found, month conflict, or database error occurs
+   * @throws Error if household not found, month conflict, invalid references, or database error occurs
    */
   async createBudget(userId: string, command: CreateBudgetCommand): Promise<BudgetCreatedDto> {
     const { month, incomes = [], plannedExpenses = [] } = command;
@@ -204,6 +205,21 @@ export class BudgetsService {
     const householdId = householdData.id;
     const normalizedMonth = this.normalizeMonthFilter(month);
 
+    // Validate references if incomes or planned expenses are provided
+    if (incomes.length > 0) {
+      await this.validateHouseholdMembers(
+        householdId,
+        incomes.map((i) => i.householdMemberId)
+      );
+    }
+
+    if (plannedExpenses.length > 0) {
+      await this.validateCategories(
+        householdId,
+        plannedExpenses.map((e) => e.categoryId)
+      );
+    }
+
     // Insert the new budget
     const { data: budgetData, error: insertError } = await this.supabase
       .from("budgets")
@@ -217,7 +233,7 @@ export class BudgetsService {
     if (insertError) {
       // Check for unique constraint violation (PostgreSQL error code 23505)
       if (insertError.code === "23505") {
-        throw new Error("BUDGET_MONTH_CONFLICT");
+        throw new Error("BUDGET_ALREADY_EXISTS");
       }
 
       console.error("Database error while creating budget:", insertError);
@@ -229,14 +245,57 @@ export class BudgetsService {
       throw new Error("BUDGET_CREATE_FAILED");
     }
 
-    // TODO: Handle incomes and plannedExpenses creation in future implementation
-    // For now, we just create the budget without related data
+    const budgetId = budgetData.id;
 
-    return {
-      id: budgetData.id,
-      month: budgetData.month,
-      createdAt: budgetData.created_at,
-    };
+    try {
+      // Create incomes if provided
+      if (incomes.length > 0) {
+        const incomesToInsert = incomes.map((income) => ({
+          household_id: householdId,
+          budget_id: budgetId,
+          household_member_id: income.householdMemberId,
+          amount: income.amount,
+        }));
+
+        const { error: incomesError } = await this.supabase.from("incomes").insert(incomesToInsert);
+
+        if (incomesError) {
+          console.error("Database error while creating incomes:", incomesError);
+          // Attempt to rollback budget creation
+          await this.rollbackBudget(budgetId);
+          throw new Error("BUDGET_CREATE_FAILED");
+        }
+      }
+
+      // Create planned expenses if provided
+      if (plannedExpenses.length > 0) {
+        const expensesToInsert = plannedExpenses.map((expense) => ({
+          household_id: householdId,
+          budget_id: budgetId,
+          category_id: expense.categoryId,
+          limit_amount: expense.limitAmount,
+        }));
+
+        const { error: expensesError } = await this.supabase.from("planned_expenses").insert(expensesToInsert);
+
+        if (expensesError) {
+          console.error("Database error while creating planned expenses:", expensesError);
+          // Attempt to rollback budget creation and incomes
+          await this.rollbackBudget(budgetId);
+          throw new Error("BUDGET_CREATE_FAILED");
+        }
+      }
+
+      return {
+        id: budgetData.id,
+        month: budgetData.month,
+        createdAt: budgetData.created_at,
+      };
+    } catch (error) {
+      // Ensure rollback on any error during related data creation
+      await this.rollbackBudget(budgetId);
+      throw error;
+    }
   }
 
   /**
@@ -307,7 +366,11 @@ export class BudgetsService {
         incomesData.forEach((income) => {
           const summary = summariesMap.get(income.budget_id);
           if (summary) {
-            summary.totalIncome += income.amount || 0;
+            const updatedSummary = {
+              ...summary,
+              totalIncome: summary.totalIncome + (income.amount || 0),
+            };
+            summariesMap.set(income.budget_id, updatedSummary);
           }
         });
       }
@@ -317,7 +380,11 @@ export class BudgetsService {
         plannedData.forEach((planned) => {
           const summary = summariesMap.get(planned.budget_id);
           if (summary) {
-            summary.totalPlanned += planned.limit_amount || 0;
+            const updatedSummary = {
+              ...summary,
+              totalPlanned: summary.totalPlanned + (planned.limit_amount || 0),
+            };
+            summariesMap.set(planned.budget_id, updatedSummary);
           }
         });
       }
@@ -327,20 +394,121 @@ export class BudgetsService {
         transactionsData.forEach((transaction) => {
           const summary = summariesMap.get(transaction.budget_id);
           if (summary) {
-            summary.totalSpent += transaction.amount || 0;
+            const updatedSummary = {
+              ...summary,
+              totalSpent: summary.totalSpent + (transaction.amount || 0),
+            };
+            summariesMap.set(transaction.budget_id, updatedSummary);
           }
         });
       }
 
       // Calculate free funds for each budget
-      summariesMap.forEach((summary) => {
-        summary.freeFunds = summary.totalIncome - summary.totalPlanned;
+      summariesMap.forEach((summary, budgetId) => {
+        const updatedSummary = {
+          ...summary,
+          freeFunds: summary.totalIncome - summary.totalPlanned,
+        };
+        summariesMap.set(budgetId, updatedSummary);
       });
 
       return summariesMap;
     } catch (error) {
       console.error("Error in getBudgetsSummaries:", error);
       throw new Error("BUDGETS_LIST_FAILED");
+    }
+  }
+
+  /**
+   * Validates that all provided household member IDs belong to the specified household and are active.
+   *
+   * @param householdId - The household ID to validate against
+   * @param memberIds - Array of household member IDs to validate
+   * @throws Error if any member ID is invalid or inactive
+   */
+  private async validateHouseholdMembers(householdId: string, memberIds: string[]): Promise<void> {
+    if (memberIds.length === 0) return;
+
+    const { data: members, error } = await this.supabase
+      .from("household_members")
+      .select("id, is_active")
+      .eq("household_id", householdId)
+      .in("id", memberIds);
+
+    if (error) {
+      console.error("Database error while validating household members:", error);
+      throw new Error("BUDGET_CREATE_FAILED");
+    }
+
+    if (!members || members.length !== memberIds.length) {
+      throw new Error("INVALID_MEMBER");
+    }
+
+    // Check if all members are active
+    const inactiveMembers = members.filter((member) => !member.is_active);
+    if (inactiveMembers.length > 0) {
+      throw new Error("INVALID_MEMBER");
+    }
+  }
+
+  /**
+   * Validates that all provided category IDs belong to the specified household.
+   *
+   * @param householdId - The household ID to validate against
+   * @param categoryIds - Array of category IDs to validate
+   * @throws Error if any category ID is invalid
+   */
+  private async validateCategories(householdId: string, categoryIds: string[]): Promise<void> {
+    if (categoryIds.length === 0) return;
+
+    const { data: categories, error } = await this.supabase
+      .from("categories")
+      .select("id")
+      .eq("household_id", householdId)
+      .in("id", categoryIds);
+
+    if (error) {
+      console.error("Database error while validating categories:", error);
+      throw new Error("BUDGET_CREATE_FAILED");
+    }
+
+    if (!categories || categories.length !== categoryIds.length) {
+      throw new Error("INVALID_CATEGORY");
+    }
+  }
+
+  /**
+   * Attempts to rollback a budget creation by deleting the budget and all related data.
+   * This is a best-effort cleanup operation that logs errors but doesn't throw.
+   *
+   * @param budgetId - The ID of the budget to rollback
+   */
+  private async rollbackBudget(budgetId: string): Promise<void> {
+    try {
+      // Delete in reverse order of creation to respect foreign key constraints
+
+      // Delete planned expenses first
+      const { error: expensesError } = await this.supabase.from("planned_expenses").delete().eq("budget_id", budgetId);
+
+      if (expensesError) {
+        console.error("Error during planned expenses rollback:", expensesError);
+      }
+
+      // Delete incomes
+      const { error: incomesError } = await this.supabase.from("incomes").delete().eq("budget_id", budgetId);
+
+      if (incomesError) {
+        console.error("Error during incomes rollback:", incomesError);
+      }
+
+      // Delete the budget itself
+      const { error: budgetError } = await this.supabase.from("budgets").delete().eq("id", budgetId);
+
+      if (budgetError) {
+        console.error("Error during budget rollback:", budgetError);
+      }
+    } catch (error) {
+      console.error("Unexpected error during budget rollback:", error);
     }
   }
 
@@ -375,7 +543,7 @@ export class BudgetsService {
         const monthNum = String(date.getMonth() + 1).padStart(2, "0");
         return `${year}-${monthNum}-01`;
       }
-    } catch (error) {
+    } catch {
       // Ignore parsing errors
     }
 
