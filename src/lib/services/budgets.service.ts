@@ -6,6 +6,12 @@ import type {
   PaginationMetaDto,
   CreateBudgetCommand,
   BudgetCreatedDto,
+  BudgetDetailDto,
+  BudgetIncomeDto,
+  BudgetPlannedExpenseDto,
+  BudgetSummaryDto,
+  BudgetCategorySummaryDto,
+  BudgetCategorySummaryStatus,
 } from "../../types";
 
 export type SupabaseClientType = typeof supabaseClient;
@@ -17,6 +23,11 @@ export interface ListBudgetsOptions {
   page?: number;
   pageSize?: number;
   sort?: "month_desc" | "month_asc";
+}
+
+export interface GetBudgetDetailOptions {
+  includeTransactions?: boolean;
+  includeInactiveMembers?: boolean;
 }
 
 /**
@@ -296,6 +307,279 @@ export class BudgetsService {
       await this.rollbackBudget(budgetId);
       throw error;
     }
+  }
+
+  /**
+   * Retrieves detailed information about a specific budget for the specified user's household.
+   * Includes incomes, planned expenses, and financial summary with optional transaction aggregation.
+   *
+   * @param userId - The ID of the user whose budget to retrieve
+   * @param budgetId - The ID of the budget to retrieve
+   * @param options - Options for including transactions and inactive members
+   * @returns Promise resolving to detailed budget information
+   * @throws Error if household not found, budget not found, or database error occurs
+   */
+  async getBudgetDetail(
+    userId: string,
+    budgetId: string,
+    options: GetBudgetDetailOptions = {}
+  ): Promise<BudgetDetailDto> {
+    const { includeTransactions = false, includeInactiveMembers = false } = options;
+
+    // First, get the household_id for the user
+    const { data: householdData, error: householdError } = await this.supabase
+      .from("households")
+      .select("id")
+      .eq("user_id", userId)
+      .single();
+
+    if (householdError) {
+      if (householdError.code === "PGRST116") {
+        throw new Error("HOUSEHOLD_NOT_FOUND");
+      }
+      console.error("Database error while fetching household:", householdError);
+      throw new Error("BUDGET_FETCH_FAILED");
+    }
+
+    if (!householdData) {
+      throw new Error("HOUSEHOLD_NOT_FOUND");
+    }
+
+    const householdId = householdData.id;
+
+    // Fetch the budget and verify it belongs to the user's household
+    const { data: budgetData, error: budgetError } = await this.supabase
+      .from("budgets")
+      .select("id, month, created_at, updated_at")
+      .eq("id", budgetId)
+      .eq("household_id", householdId)
+      .single();
+
+    if (budgetError) {
+      if (budgetError.code === "PGRST116") {
+        throw new Error("BUDGET_NOT_FOUND");
+      }
+      console.error("Database error while fetching budget:", budgetError);
+      throw new Error("BUDGET_FETCH_FAILED");
+    }
+
+    if (!budgetData) {
+      throw new Error("BUDGET_NOT_FOUND");
+    }
+
+    try {
+      // Fetch all related data in parallel
+      const [incomesData, plannedExpensesData, transactionsData] = await Promise.all([
+        this.getBudgetIncomes(budgetId, householdId, includeInactiveMembers),
+        this.getBudgetPlannedExpenses(budgetId, householdId),
+        includeTransactions ? this.getBudgetTransactions(budgetId, householdId) : Promise.resolve([]),
+      ]);
+
+      // Calculate summary totals
+      const totalIncome = incomesData.reduce((sum, income) => sum + income.amount, 0);
+      const totalPlanned = plannedExpensesData.reduce((sum, expense) => sum + expense.limitAmount, 0);
+      const totalSpent = transactionsData.reduce((sum, transaction) => sum + transaction.amount, 0);
+      const freeFunds = totalIncome - totalPlanned;
+      const progress = totalIncome > 0 ? (totalSpent / totalIncome) * 100 : 0;
+
+      // Build summary object
+      let summary: BudgetSummaryDto = {
+        totalIncome,
+        totalPlanned,
+        totalSpent,
+        freeFunds,
+        progress,
+      };
+
+      // Add per-category summary if transactions are included
+      if (includeTransactions) {
+        const perCategory = await this.calculateCategorySummaries(plannedExpensesData, transactionsData, householdId);
+        summary = {
+          ...summary,
+          perCategory,
+        };
+      }
+
+      return {
+        id: budgetData.id,
+        month: budgetData.month,
+        createdAt: budgetData.created_at,
+        updatedAt: budgetData.updated_at,
+        incomes: incomesData,
+        plannedExpenses: plannedExpensesData,
+        summary,
+      };
+    } catch (error) {
+      console.error("Error fetching budget detail data:", error);
+      throw new Error("BUDGET_FETCH_FAILED");
+    }
+  }
+
+  /**
+   * Fetches incomes for a specific budget with optional filtering by member activity.
+   *
+   * @param budgetId - The budget ID to fetch incomes for
+   * @param householdId - The household ID for security filtering
+   * @param includeInactiveMembers - Whether to include incomes from inactive members
+   * @returns Promise resolving to array of budget income DTOs
+   */
+  private async getBudgetIncomes(
+    budgetId: string,
+    householdId: string,
+    includeInactiveMembers: boolean
+  ): Promise<BudgetIncomeDto[]> {
+    let query = this.supabase
+      .from("incomes")
+      .select(
+        `
+        id,
+        household_member_id,
+        amount,
+        created_at,
+        updated_at,
+        household_members!inner(is_active)
+      `
+      )
+      .eq("budget_id", budgetId)
+      .eq("household_id", householdId);
+
+    // Filter by member activity if requested
+    if (!includeInactiveMembers) {
+      query = query.eq("household_members.is_active", true);
+    }
+
+    const { data, error } = await query;
+
+    if (error) {
+      console.error("Database error while fetching budget incomes:", error);
+      throw new Error("BUDGET_FETCH_FAILED");
+    }
+
+    return (data || []).map((income) => ({
+      id: income.id,
+      householdMemberId: income.household_member_id,
+      amount: income.amount,
+      createdAt: income.created_at,
+      updatedAt: income.updated_at,
+    }));
+  }
+
+  /**
+   * Fetches planned expenses for a specific budget.
+   *
+   * @param budgetId - The budget ID to fetch planned expenses for
+   * @param householdId - The household ID for security filtering
+   * @returns Promise resolving to array of budget planned expense DTOs
+   */
+  private async getBudgetPlannedExpenses(budgetId: string, householdId: string): Promise<BudgetPlannedExpenseDto[]> {
+    const { data, error } = await this.supabase
+      .from("planned_expenses")
+      .select("id, category_id, limit_amount, created_at, updated_at")
+      .eq("budget_id", budgetId)
+      .eq("household_id", householdId);
+
+    if (error) {
+      console.error("Database error while fetching planned expenses:", error);
+      throw new Error("BUDGET_FETCH_FAILED");
+    }
+
+    return (data || []).map((expense) => ({
+      id: expense.id,
+      categoryId: expense.category_id,
+      limitAmount: expense.limit_amount,
+      createdAt: expense.created_at,
+      updatedAt: expense.updated_at,
+    }));
+  }
+
+  /**
+   * Fetches transactions for a specific budget.
+   *
+   * @param budgetId - The budget ID to fetch transactions for
+   * @param householdId - The household ID for security filtering
+   * @returns Promise resolving to array of transaction data
+   */
+  private async getBudgetTransactions(
+    budgetId: string,
+    householdId: string
+  ): Promise<{ categoryId: string; amount: number }[]> {
+    const { data, error } = await this.supabase
+      .from("transactions")
+      .select("category_id, amount")
+      .eq("budget_id", budgetId)
+      .eq("household_id", householdId);
+
+    if (error) {
+      console.error("Database error while fetching budget transactions:", error);
+      throw new Error("BUDGET_FETCH_FAILED");
+    }
+
+    return (data || []).map((transaction) => ({
+      categoryId: transaction.category_id,
+      amount: transaction.amount,
+    }));
+  }
+
+  /**
+   * Calculates per-category summaries by combining planned expenses with transaction data.
+   *
+   * @param plannedExpenses - Array of planned expenses
+   * @param transactions - Array of transactions
+   * @param householdId - The household ID for fetching category names
+   * @returns Promise resolving to array of category summary DTOs
+   */
+  private async calculateCategorySummaries(
+    plannedExpenses: BudgetPlannedExpenseDto[],
+    transactions: { categoryId: string; amount: number }[],
+    householdId: string
+  ): Promise<BudgetCategorySummaryDto[]> {
+    if (plannedExpenses.length === 0) {
+      return [];
+    }
+
+    // Get category names
+    const categoryIds = plannedExpenses.map((expense) => expense.categoryId);
+    const { data: categoriesData, error: categoriesError } = await this.supabase
+      .from("categories")
+      .select("id, name")
+      .eq("household_id", householdId)
+      .in("id", categoryIds);
+
+    if (categoriesError) {
+      console.error("Database error while fetching category names:", categoriesError);
+      throw new Error("BUDGET_FETCH_FAILED");
+    }
+
+    const categoriesMap = new Map((categoriesData || []).map((category) => [category.id, category.name]));
+
+    // Aggregate transactions by category
+    const transactionsByCategory = new Map<string, number>();
+    transactions.forEach((transaction) => {
+      const currentAmount = transactionsByCategory.get(transaction.categoryId) || 0;
+      transactionsByCategory.set(transaction.categoryId, currentAmount + transaction.amount);
+    });
+
+    // Build category summaries
+    return plannedExpenses.map((expense) => {
+      const spent = transactionsByCategory.get(expense.categoryId) || 0;
+      const progress = expense.limitAmount > 0 ? (spent / expense.limitAmount) * 100 : 0;
+
+      let status: BudgetCategorySummaryStatus = "ok";
+      if (progress >= 100) {
+        status = "over";
+      } else if (progress >= 80) {
+        status = "warning";
+      }
+
+      return {
+        categoryId: expense.categoryId,
+        name: categoriesMap.get(expense.categoryId) || "Unknown Category",
+        spent,
+        limitAmount: expense.limitAmount,
+        progress,
+        status,
+      };
+    });
   }
 
   /**
