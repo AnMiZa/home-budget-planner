@@ -1,5 +1,12 @@
 import type { supabaseClient } from "../../db/supabase.client";
-import type { CategoryDto, PaginationMetaDto, CategoriesListResponseDto, CreateCategoryCommand, UpdateCategoryCommand } from "../../types";
+import type {
+  CategoryDto,
+  PaginationMetaDto,
+  CategoriesListResponseDto,
+  CreateCategoryCommand,
+  UpdateCategoryCommand,
+  DeleteCategoryCommand,
+} from "../../types";
 
 export type SupabaseClientType = typeof supabaseClient;
 
@@ -195,7 +202,11 @@ export class CategoriesService {
    * @returns Promise resolving to the updated category DTO
    * @throws Error if household not found, category not found, name conflict, or database error occurs
    */
-  async updateCategoryByUserId(userId: string, categoryId: string, command: UpdateCategoryCommand): Promise<CategoryDto> {
+  async updateCategoryByUserId(
+    userId: string,
+    categoryId: string,
+    command: UpdateCategoryCommand
+  ): Promise<CategoryDto> {
     const { name } = command;
 
     // First, get the household_id for the user
@@ -259,6 +270,126 @@ export class CategoriesService {
     };
 
     return categoryDto;
+  }
+
+  /**
+   * Deletes a category for the specified user's household.
+   * Checks for dependencies in planned_expenses and transactions tables.
+   * Requires force=true confirmation if dependencies exist.
+   *
+   * @param userId - The ID of the user deleting the category
+   * @param categoryId - The ID of the category to delete
+   * @param command - The delete command containing force flag
+   * @returns Promise resolving when category is deleted
+   * @throws Error if household not found, category not found, dependencies exist without force, or database error occurs
+   */
+  async deleteCategoryByUserId(userId: string, categoryId: string, command: DeleteCategoryCommand): Promise<void> {
+    const { force } = command;
+
+    // First, get the household_id for the user
+    const { data: householdData, error: householdError } = await this.supabase
+      .from("households")
+      .select("id")
+      .eq("user_id", userId)
+      .single();
+
+    if (householdError) {
+      if (householdError.code === "PGRST116") {
+        // No rows returned - household not found
+        throw new Error("HOUSEHOLD_NOT_FOUND");
+      }
+      // Other database errors
+      console.error("Database error while fetching household:", householdError);
+      throw new Error("CATEGORY_DELETE_FAILED");
+    }
+
+    if (!householdData) {
+      throw new Error("HOUSEHOLD_NOT_FOUND");
+    }
+
+    const householdId = householdData.id;
+
+    // Verify category exists and belongs to the household
+    const { data: categoryData, error: categoryError } = await this.supabase
+      .from("categories")
+      .select("id, name")
+      .eq("id", categoryId)
+      .eq("household_id", householdId)
+      .single();
+
+    if (categoryError) {
+      if (categoryError.code === "PGRST116") {
+        // No rows returned - category not found or doesn't belong to household
+        throw new Error("CATEGORY_NOT_FOUND");
+      }
+      // Other database errors
+      console.error("Database error while fetching category:", categoryError);
+      throw new Error("CATEGORY_DELETE_FAILED");
+    }
+
+    if (!categoryData) {
+      throw new Error("CATEGORY_NOT_FOUND");
+    }
+
+    // Check for dependencies in planned_expenses and transactions
+    const dependencyCounts = await this.getCategoryDependenciesCounts(categoryId, householdId);
+    const totalDependencies = dependencyCounts.plannedExpenses + dependencyCounts.transactions;
+
+    if (totalDependencies > 0 && force !== true) {
+      throw new Error("CATEGORY_DEPENDENCIES_EXIST");
+    }
+
+    // Delete the category (ON DELETE CASCADE will handle dependent records)
+    const { error: deleteError } = await this.supabase
+      .from("categories")
+      .delete()
+      .eq("id", categoryId)
+      .eq("household_id", householdId);
+
+    if (deleteError) {
+      console.error("Database error while deleting category:", deleteError);
+      throw new Error("CATEGORY_DELETE_FAILED");
+    }
+  }
+
+  /**
+   * Counts dependencies for a category in planned_expenses and transactions tables.
+   *
+   * @param categoryId - The ID of the category to check
+   * @param householdId - The ID of the household (for security filtering)
+   * @returns Promise resolving to counts of dependencies
+   */
+  private async getCategoryDependenciesCounts(
+    categoryId: string,
+    householdId: string
+  ): Promise<{ plannedExpenses: number; transactions: number }> {
+    // Count planned_expenses dependencies
+    const { count: plannedExpensesCount, error: plannedError } = await this.supabase
+      .from("planned_expenses")
+      .select("*", { count: "exact", head: true })
+      .eq("category_id", categoryId);
+
+    if (plannedError) {
+      console.error("Database error while counting planned expenses:", plannedError);
+      throw new Error("CATEGORY_DELETE_FAILED");
+    }
+
+    // Count transactions dependencies
+    const { count: transactionsCount, error: transactionsError } = await this.supabase
+      .from("transactions")
+      .select("*", { count: "exact", head: true })
+      .eq("category_id", categoryId)
+      .eq("household_id", householdId);
+
+    if (transactionsError) {
+      console.error("Database error while counting transactions:", transactionsError);
+      throw new Error("CATEGORY_DELETE_FAILED");
+    }
+
+    return {
+      plannedExpenses: plannedExpensesCount || 0,
+      transactions: transactionsCount || 0,
+    };
   }
 
   /**
