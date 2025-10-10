@@ -56,6 +56,18 @@ function createMemberUpdateSuccessResponse(data: HouseholdMemberDto): Response {
 }
 
 /**
+ * Creates a successful API response for deactivated household member.
+ */
+function createMemberDeactivateSuccessResponse(): Response {
+  return new Response(null, {
+    status: 204,
+    headers: {
+      "X-Result-Code": "MEMBER_DEACTIVATED",
+    },
+  });
+}
+
+/**
  * PATCH /api/household-members/{memberId}
  *
  * Updates an existing household member for the currently authenticated user's household.
@@ -179,5 +191,100 @@ export const PATCH: APIRoute = async ({ params, request, locals }) => {
     // Catch-all for unexpected errors
     console.error("Unexpected error in PATCH /api/household-members/{memberId}:", error);
     return createErrorResponse("MEMBER_UPDATE_FAILED", "An internal server error occurred", 500);
+  }
+};
+
+/**
+ * DELETE /api/household-members/{memberId}
+ *
+ * Deactivates (soft-deletes) an existing household member for the currently authenticated user's household.
+ * Sets is_active to false while preserving historical data.
+ *
+ * URL Parameters:
+ * - memberId (string, required): UUID of the household member to deactivate
+ *
+ * Request Body: None
+ *
+ * Responses:
+ * - 204: Member deactivated successfully with X-Result-Code: MEMBER_DEACTIVATED
+ * - 400: Invalid member ID (INVALID_MEMBER_ID)
+ * - 401: User not authenticated (UNAUTHENTICATED)
+ * - 404: Member not found in user's household (MEMBER_NOT_FOUND)
+ * - 500: Internal server error (MEMBER_DEACTIVATE_FAILED)
+ */
+export const DELETE: APIRoute = async ({ params, locals }) => {
+  try {
+    // Extract memberId from URL parameters
+    const { memberId } = params;
+
+    // Validate memberId
+    const memberIdValidation = memberIdSchema.safeParse(memberId);
+    if (!memberIdValidation.success) {
+      console.error("Member ID validation failed:", memberIdValidation.error);
+      return createErrorResponse("INVALID_MEMBER_ID", "Invalid member ID format", 400);
+    }
+
+    // Get Supabase client from locals
+    const supabase = locals.supabase;
+    if (!supabase) {
+      console.error("Supabase client not available in locals");
+      return createErrorResponse("MEMBER_DEACTIVATE_FAILED", "Database connection not available", 500);
+    }
+
+    // Get authenticated user
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser();
+
+    if (authError) {
+      console.error("Authentication error:", authError);
+      return createErrorResponse("UNAUTHENTICATED", "Authentication failed", 401);
+    }
+
+    if (!user) {
+      return createErrorResponse("UNAUTHENTICATED", "User not authenticated", 401);
+    }
+
+    // Create household members service and deactivate member
+    const householdMembersService = createHouseholdMembersService(supabase);
+
+    try {
+      await householdMembersService.deactivateMember(user.id, memberIdValidation.data);
+
+      console.log(
+        `Household member deactivated successfully for user ${user.id}, memberId: ${memberIdValidation.data}`
+      );
+      return createMemberDeactivateSuccessResponse();
+    } catch (serviceError) {
+      const errorMessage = serviceError instanceof Error ? serviceError.message : "Unknown error";
+
+      if (errorMessage === "HOUSEHOLD_NOT_FOUND") {
+        console.error(`Household not found for user ${user.id}`);
+        return createErrorResponse("MEMBER_NOT_FOUND", "Member not found", 404);
+      }
+
+      if (errorMessage === "MEMBER_NOT_FOUND") {
+        console.error(`Member not found for user ${user.id}, memberId: ${memberIdValidation.data}`);
+        return createErrorResponse("MEMBER_NOT_FOUND", "Member not found", 404);
+      }
+
+      if (errorMessage === "MEMBER_DEACTIVATE_FAILED") {
+        console.error(`Database error while deactivating household member for user ${user.id}:`, serviceError);
+        return createErrorResponse("MEMBER_DEACTIVATE_FAILED", "Failed to deactivate household member", 500);
+      }
+
+      // Unexpected service error
+      console.error(`Unexpected service error while deactivating member for user ${user.id}:`, serviceError);
+      return createErrorResponse(
+        "MEMBER_DEACTIVATE_FAILED",
+        "An unexpected error occurred while deactivating household member",
+        500
+      );
+    }
+  } catch (error) {
+    // Catch-all for unexpected errors
+    console.error("Unexpected error in DELETE /api/household-members/{memberId}:", error);
+    return createErrorResponse("MEMBER_DEACTIVATE_FAILED", "An internal server error occurred", 500);
   }
 };

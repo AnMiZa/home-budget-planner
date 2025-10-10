@@ -314,6 +314,74 @@ export class HouseholdMembersService {
       updatedAt: updatedMember.updated_at,
     };
   }
+
+  /**
+   * Deactivates (soft-deletes) an existing household member for the specified user's household.
+   * Sets is_active to false while preserving historical data.
+   *
+   * @param userId - The ID of the user whose household member to deactivate
+   * @param memberId - The ID of the household member to deactivate
+   * @returns Promise resolving when the member is successfully deactivated
+   * @throws Error if household not found, member not found, or database error occurs
+   */
+  async deactivateMember(userId: string, memberId: string): Promise<void> {
+    // First, get the household_id for the user
+    const { data: householdData, error: householdError } = await this.supabase
+      .from("households")
+      .select("id")
+      .eq("user_id", userId)
+      .single();
+
+    if (householdError) {
+      if (householdError.code === "PGRST116") {
+        // No rows returned - household not found
+        throw new Error("HOUSEHOLD_NOT_FOUND");
+      }
+      // Other database errors
+      console.error("Database error while fetching household:", householdError);
+      throw new Error("MEMBER_DEACTIVATE_FAILED");
+    }
+
+    if (!householdData) {
+      throw new Error("HOUSEHOLD_NOT_FOUND");
+    }
+
+    const householdId = householdData.id;
+
+    // Check if the member exists and belongs to the user's household
+    const { data: existingMember, error: memberFetchError } = await this.supabase
+      .from("household_members")
+      .select("id, is_active")
+      .eq("id", memberId)
+      .eq("household_id", householdId)
+      .single();
+
+    if (memberFetchError) {
+      if (memberFetchError.code === "PGRST116") {
+        // No rows returned - member not found
+        throw new Error("MEMBER_NOT_FOUND");
+      }
+      // Other database errors
+      console.error("Database error while fetching household member:", memberFetchError);
+      throw new Error("MEMBER_DEACTIVATE_FAILED");
+    }
+
+    if (!existingMember) {
+      throw new Error("MEMBER_NOT_FOUND");
+    }
+
+    // Deactivate the household member (idempotent operation)
+    const { error: updateError } = await this.supabase
+      .from("household_members")
+      .update({ is_active: false })
+      .eq("id", memberId)
+      .eq("household_id", householdId); // Additional security check via RLS
+
+    if (updateError) {
+      console.error("Database error while deactivating household member:", updateError);
+      throw new Error("MEMBER_DEACTIVATE_FAILED");
+    }
+  }
 }
 
 /**
