@@ -1,5 +1,10 @@
 import type { supabaseClient } from "../../db/supabase.client";
-import type { HouseholdMemberDto, PaginationMetaDto, HouseholdMembersListResponseDto } from "../../types";
+import type {
+  HouseholdMemberDto,
+  PaginationMetaDto,
+  HouseholdMembersListResponseDto,
+  CreateHouseholdMemberCommand,
+} from "../../types";
 
 export type SupabaseClientType = typeof supabaseClient;
 
@@ -105,6 +110,88 @@ export class HouseholdMembersService {
     return {
       data: members,
       meta,
+    };
+  }
+
+  /**
+   * Creates a new household member for the specified user's household.
+   *
+   * @param userId - The ID of the user whose household to add the member to
+   * @param command - The command containing member data to create
+   * @returns Promise resolving to the created household member DTO
+   * @throws Error if household not found, name conflict, or database error occurs
+   */
+  async createMember(userId: string, command: CreateHouseholdMemberCommand): Promise<HouseholdMemberDto> {
+    // First, get the household_id for the user
+    const { data: householdData, error: householdError } = await this.supabase
+      .from("households")
+      .select("id")
+      .eq("user_id", userId)
+      .single();
+
+    if (householdError) {
+      if (householdError.code === "PGRST116") {
+        // No rows returned - household not found
+        throw new Error("HOUSEHOLD_NOT_FOUND");
+      }
+      // Other database errors
+      console.error("Database error while fetching household:", householdError);
+      throw new Error("MEMBER_CREATE_FAILED");
+    }
+
+    if (!householdData) {
+      throw new Error("HOUSEHOLD_NOT_FOUND");
+    }
+
+    const householdId = householdData.id;
+
+    // Check for duplicate name (case-insensitive) within the household
+    const { data: existingMember, error: duplicateCheckError } = await this.supabase
+      .from("household_members")
+      .select("id")
+      .eq("household_id", householdId)
+      .ilike("full_name", command.fullName)
+      .limit(1)
+      .single();
+
+    if (duplicateCheckError && duplicateCheckError.code !== "PGRST116") {
+      // Error other than "no rows returned"
+      console.error("Database error while checking for duplicate member name:", duplicateCheckError);
+      throw new Error("MEMBER_CREATE_FAILED");
+    }
+
+    if (existingMember) {
+      // Member with this name already exists (case-insensitive)
+      throw new Error("MEMBER_NAME_CONFLICT");
+    }
+
+    // Insert the new household member
+    const { data: newMember, error: insertError } = await this.supabase
+      .from("household_members")
+      .insert({
+        household_id: householdId,
+        full_name: command.fullName,
+        is_active: true,
+      })
+      .select("id, full_name, is_active, created_at, updated_at")
+      .single();
+
+    if (insertError) {
+      console.error("Database error while creating household member:", insertError);
+      throw new Error("MEMBER_CREATE_FAILED");
+    }
+
+    if (!newMember) {
+      throw new Error("MEMBER_CREATE_FAILED");
+    }
+
+    // Map database row to DTO
+    return {
+      id: newMember.id,
+      fullName: newMember.full_name,
+      isActive: newMember.is_active,
+      createdAt: newMember.created_at,
+      updatedAt: newMember.updated_at,
     };
   }
 }
