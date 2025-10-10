@@ -1,5 +1,5 @@
 import type { supabaseClient } from "../../db/supabase.client";
-import type { CategoryDto, PaginationMetaDto, CategoriesListResponseDto } from "../../types";
+import type { CategoryDto, PaginationMetaDto, CategoriesListResponseDto, CreateCategoryCommand } from "../../types";
 
 export type SupabaseClientType = typeof supabaseClient;
 
@@ -112,6 +112,78 @@ export class CategoriesService {
       data: categories,
       meta,
     };
+  }
+
+  /**
+   * Creates a new category for the specified user's household.
+   *
+   * @param userId - The ID of the user creating the category
+   * @param command - The category creation command containing the name
+   * @returns Promise resolving to the created category DTO
+   * @throws Error if household not found, name conflict, or database error occurs
+   */
+  async createCategory(userId: string, command: CreateCategoryCommand): Promise<CategoryDto> {
+    const { name } = command;
+
+    // First, get the household_id for the user
+    const { data: householdData, error: householdError } = await this.supabase
+      .from("households")
+      .select("id")
+      .eq("user_id", userId)
+      .single();
+
+    if (householdError) {
+      if (householdError.code === "PGRST116") {
+        // No rows returned - household not found
+        throw new Error("HOUSEHOLD_NOT_FOUND");
+      }
+      // Other database errors
+      console.error("Database error while fetching household:", householdError);
+      throw new Error("CATEGORY_CREATE_FAILED");
+    }
+
+    if (!householdData) {
+      throw new Error("HOUSEHOLD_NOT_FOUND");
+    }
+
+    const householdId = householdData.id;
+
+    // Insert the new category
+    const { data: categoryData, error: insertError } = await this.supabase
+      .from("categories")
+      .insert({
+        household_id: householdId,
+        name: name.trim(),
+      })
+      .select("id, name, created_at, updated_at")
+      .single();
+
+    if (insertError) {
+      // Check for unique constraint violation (PostgreSQL error code 23505)
+      if (insertError.code === "23505") {
+        // This indicates a violation of the unique constraint on (household_id, lower(name))
+        throw new Error("CATEGORY_NAME_CONFLICT");
+      }
+
+      // Other database errors
+      console.error("Database error while creating category:", insertError);
+      throw new Error("CATEGORY_CREATE_FAILED");
+    }
+
+    if (!categoryData) {
+      console.error("Category creation succeeded but no data returned");
+      throw new Error("CATEGORY_CREATE_FAILED");
+    }
+
+    // Map database row to DTO
+    const categoryDto: CategoryDto = {
+      id: categoryData.id,
+      name: categoryData.name,
+      createdAt: categoryData.created_at,
+      updatedAt: categoryData.updated_at,
+    };
+
+    return categoryDto;
   }
 
   /**
