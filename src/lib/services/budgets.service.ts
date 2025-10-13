@@ -14,6 +14,7 @@ import type {
   BudgetCategorySummaryStatus,
   UpdateBudgetCommand,
   BudgetIncomesListResponseDto,
+  UpdateBudgetIncomeCommand,
 } from "../../types";
 
 export type SupabaseClientType = typeof supabaseClient;
@@ -1048,6 +1049,114 @@ export class BudgetsService {
       console.error("Error fetching updated budget detail data:", detailError);
       throw new Error("BUDGET_UPDATE_FAILED");
     }
+  }
+
+  /**
+   * Updates the amount of a specific income in a budget.
+   *
+   * @param userId - The ID of the user making the request
+   * @param budgetId - The ID of the budget containing the income
+   * @param incomeId - The ID of the income to update
+   * @param command - The update command containing the new amount
+   * @returns Promise resolving to the updated income DTO
+   * @throws Error if household, budget, or income not found, or if update fails
+   */
+  async updateBudgetIncome(
+    userId: string,
+    budgetId: string,
+    incomeId: string,
+    command: UpdateBudgetIncomeCommand
+  ): Promise<BudgetIncomeDto> {
+    // First, get the household_id for the user
+    const { data: householdData, error: householdError } = await this.supabase
+      .from("households")
+      .select("id")
+      .eq("user_id", userId)
+      .single();
+
+    if (householdError) {
+      if (householdError.code === "PGRST116") {
+        throw new Error("HOUSEHOLD_NOT_FOUND");
+      }
+      console.error("Database error while fetching household:", householdError);
+      throw new Error("INCOME_UPDATE_FAILED");
+    }
+
+    if (!householdData) {
+      throw new Error("HOUSEHOLD_NOT_FOUND");
+    }
+
+    const householdId = householdData.id;
+
+    // Verify that the budget exists and belongs to the user's household
+    const { data: budgetData, error: budgetError } = await this.supabase
+      .from("budgets")
+      .select("id")
+      .eq("id", budgetId)
+      .eq("household_id", householdId)
+      .single();
+
+    if (budgetError) {
+      if (budgetError.code === "PGRST116") {
+        throw new Error("BUDGET_NOT_FOUND");
+      }
+      console.error("Database error while fetching budget:", budgetError);
+      throw new Error("INCOME_UPDATE_FAILED");
+    }
+
+    if (!budgetData) {
+      throw new Error("BUDGET_NOT_FOUND");
+    }
+
+    // Update the income record
+    const { data: updatedIncome, error: updateError } = await this.supabase
+      .from("incomes")
+      .update({
+        amount: command.amount,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", incomeId)
+      .eq("budget_id", budgetId)
+      .eq("household_id", householdId)
+      .select("id, household_member_id, amount, created_at, updated_at")
+      .single();
+
+    if (updateError) {
+      if (updateError.code === "PGRST116") {
+        throw new Error("INCOME_NOT_FOUND");
+      }
+      
+      // Handle constraint violations (e.g., CHECK constraints)
+      if (updateError.code === "23514" || updateError.message?.includes("CHECK")) {
+        throw new Error("INVALID_AMOUNT");
+      }
+
+      console.error("Database error while updating income:", updateError);
+      throw new Error("INCOME_UPDATE_FAILED");
+    }
+
+    if (!updatedIncome) {
+      throw new Error("INCOME_NOT_FOUND");
+    }
+
+    // Map the database result to DTO
+    return this.mapIncomeToDto(updatedIncome);
+  }
+
+  /**
+   * Maps a database income record to BudgetIncomeDto.
+   *
+   * @param income - The income record from the database
+   * @returns Mapped BudgetIncomeDto
+   */
+  private mapIncomeToDto(income: any): BudgetIncomeDto {
+    return {
+      id: income.id,
+      householdMemberId: income.household_member_id,
+      amount: income.amount,
+      createdAt: income.created_at,
+      updatedAt: income.updated_at,
+    };
   }
 }
 
