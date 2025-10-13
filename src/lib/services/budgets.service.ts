@@ -13,6 +13,7 @@ import type {
   BudgetCategorySummaryDto,
   BudgetCategorySummaryStatus,
   UpdateBudgetCommand,
+  BudgetIncomesListResponseDto,
 } from "../../types";
 
 export type SupabaseClientType = typeof supabaseClient;
@@ -850,6 +851,69 @@ export class BudgetsService {
 
     // If all else fails, return as-is (will likely cause validation error later)
     return month;
+  }
+
+  /**
+   * Lists incomes for a specific budget that belongs to the authenticated user's household.
+   *
+   * @param userId - The ID of the user whose budget incomes to retrieve
+   * @param budgetId - The ID of the budget to retrieve incomes for
+   * @returns Promise resolving to list of budget incomes
+   * @throws Error if household not found, budget not found, or database error occurs
+   */
+  async listBudgetIncomes(userId: string, budgetId: string): Promise<BudgetIncomesListResponseDto> {
+    // First, get the household_id for the user
+    const { data: householdData, error: householdError } = await this.supabase
+      .from("households")
+      .select("id")
+      .eq("user_id", userId)
+      .single();
+
+    if (householdError) {
+      if (householdError.code === "PGRST116") {
+        throw new Error("HOUSEHOLD_NOT_FOUND");
+      }
+      console.error("Database error while fetching household:", householdError);
+      throw new Error("INCOMES_LIST_FAILED");
+    }
+
+    if (!householdData) {
+      throw new Error("HOUSEHOLD_NOT_FOUND");
+    }
+
+    const householdId = householdData.id;
+
+    // Verify that the budget exists and belongs to the user's household
+    const { data: budgetData, error: budgetError } = await this.supabase
+      .from("budgets")
+      .select("id")
+      .eq("id", budgetId)
+      .eq("household_id", householdId)
+      .single();
+
+    if (budgetError) {
+      if (budgetError.code === "PGRST116") {
+        throw new Error("BUDGET_NOT_FOUND");
+      }
+      console.error("Database error while fetching budget:", budgetError);
+      throw new Error("INCOMES_LIST_FAILED");
+    }
+
+    if (!budgetData) {
+      throw new Error("BUDGET_NOT_FOUND");
+    }
+
+    try {
+      // Fetch incomes using existing private method (include only active members)
+      const incomes = await this.getBudgetIncomes(budgetId, householdId, false);
+
+      return {
+        data: incomes,
+      };
+    } catch (error) {
+      console.error("Error fetching budget incomes:", error);
+      throw new Error("INCOMES_LIST_FAILED");
+    }
   }
 
   /**
