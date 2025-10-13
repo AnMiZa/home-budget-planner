@@ -1261,6 +1261,92 @@ export class BudgetsService {
   }
 
   /**
+   * Deletes a specific income from a budget that belongs to the authenticated user's household.
+   *
+   * @param userId - The ID of the user making the request
+   * @param budgetId - The ID of the budget containing the income
+   * @param incomeId - The ID of the income to delete
+   * @returns Promise resolving when the income is successfully deleted
+   * @throws Error if household, budget, or income not found, or if deletion fails
+   */
+  async deleteBudgetIncome(userId: string, budgetId: string, incomeId: string): Promise<void> {
+    // First, get the household_id for the user
+    const { data: householdData, error: householdError } = await this.supabase
+      .from("households")
+      .select("id")
+      .eq("user_id", userId)
+      .single();
+
+    if (householdError) {
+      if (householdError.code === "PGRST116") {
+        throw new Error("HOUSEHOLD_NOT_FOUND");
+      }
+      console.error("Database error while fetching household:", householdError);
+      throw new Error("INCOME_DELETE_FAILED");
+    }
+
+    if (!householdData) {
+      throw new Error("HOUSEHOLD_NOT_FOUND");
+    }
+
+    const householdId = householdData.id;
+
+    // Verify that the budget exists and belongs to the user's household
+    const { data: budgetData, error: budgetError } = await this.supabase
+      .from("budgets")
+      .select("id")
+      .eq("id", budgetId)
+      .eq("household_id", householdId)
+      .single();
+
+    if (budgetError) {
+      if (budgetError.code === "PGRST116") {
+        throw new Error("BUDGET_NOT_FOUND");
+      }
+      console.error("Database error while fetching budget:", budgetError);
+      throw new Error("INCOME_DELETE_FAILED");
+    }
+
+    if (!budgetData) {
+      throw new Error("BUDGET_NOT_FOUND");
+    }
+
+    // Verify that the income exists and belongs to the budget and household
+    const { data: incomeData, error: incomeCheckError } = await this.supabase
+      .from("incomes")
+      .select("id")
+      .eq("id", incomeId)
+      .eq("budget_id", budgetId)
+      .eq("household_id", householdId)
+      .single();
+
+    if (incomeCheckError) {
+      if (incomeCheckError.code === "PGRST116") {
+        throw new Error("INCOME_NOT_FOUND");
+      }
+      console.error("Database error while checking income existence:", incomeCheckError);
+      throw new Error("INCOME_DELETE_FAILED");
+    }
+
+    if (!incomeData) {
+      throw new Error("INCOME_NOT_FOUND");
+    }
+
+    // Delete the income record
+    const { error: deleteError } = await this.supabase
+      .from("incomes")
+      .delete()
+      .eq("id", incomeId)
+      .eq("budget_id", budgetId)
+      .eq("household_id", householdId);
+
+    if (deleteError) {
+      console.error("Database error while deleting income:", deleteError);
+      throw new Error("INCOME_DELETE_FAILED");
+    }
+  }
+
+  /**
    * Maps a database income record to BudgetIncomeDto.
    *
    * @param income - The income record from the database

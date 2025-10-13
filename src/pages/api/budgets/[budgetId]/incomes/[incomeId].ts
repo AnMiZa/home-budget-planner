@@ -57,6 +57,18 @@ function createSuccessResponse(data: BudgetIncomeDto): Response {
 }
 
 /**
+ * Creates a successful API response for budget income deletion.
+ */
+function createDeleteSuccessResponse(): Response {
+  return new Response(null, {
+    status: 204,
+    headers: {
+      "X-Result-Code": "INCOME_DELETED",
+    },
+  });
+}
+
+/**
  * PATCH /api/budgets/{budgetId}/incomes/{incomeId}
  *
  * Updates the amount of a single income associated with a budget in the authenticated user's household.
@@ -177,5 +189,103 @@ export const PATCH: APIRoute = async ({ params, request, locals }) => {
     // Catch-all for unexpected errors
     console.error("Unexpected error in PATCH /api/budgets/[budgetId]/incomes/[incomeId]:", error);
     return createErrorResponse("INCOME_UPDATE_FAILED", "An internal server error occurred", 500);
+  }
+};
+
+/**
+ * DELETE /api/budgets/{budgetId}/incomes/{incomeId}
+ *
+ * Deletes a single income associated with a budget in the authenticated user's household.
+ * Provides resource ownership verification and secure deletion, returning 204 No Content on success.
+ *
+ * Path Parameters:
+ * - budgetId (string, required): UUID of the budget containing the income
+ * - incomeId (string, required): UUID of the income to delete
+ *
+ * Responses:
+ * - 204: Income deleted successfully with X-Result-Code: INCOME_DELETED
+ * - 400: Invalid budget ID or income ID (INVALID_BUDGET_ID, INVALID_INCOME_ID, INVALID_PATH_PARAMS)
+ * - 401: User not authenticated (UNAUTHENTICATED)
+ * - 404: Income not found (INCOME_NOT_FOUND)
+ * - 500: Internal server error (INCOME_DELETE_FAILED)
+ */
+export const DELETE: APIRoute = async ({ params, locals }) => {
+  try {
+    // Validate path parameters
+    const paramsResult = paramsSchema.safeParse(params);
+    if (!paramsResult.success) {
+      console.warn("Path parameters validation failed:", paramsResult.error);
+      const firstError = paramsResult.error.errors[0];
+
+      if (firstError?.path.includes("budgetId")) {
+        return createErrorResponse("INVALID_BUDGET_ID", firstError?.message || "Invalid budget ID format", 400);
+      } else if (firstError?.path.includes("incomeId")) {
+        return createErrorResponse("INVALID_INCOME_ID", firstError?.message || "Invalid income ID format", 400);
+      }
+
+      return createErrorResponse("INVALID_PATH_PARAMS", firstError?.message || "Invalid path parameters", 400);
+    }
+
+    const { budgetId, incomeId } = paramsResult.data;
+
+    // Get Supabase client from locals
+    const supabase = locals.supabase;
+    if (!supabase) {
+      console.error("Supabase client not available in locals");
+      return createErrorResponse("INCOME_DELETE_FAILED", "Database connection not available", 500);
+    }
+
+    // Get authenticated user
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser();
+
+    if (authError) {
+      console.error("Authentication error:", authError);
+      return createErrorResponse("UNAUTHENTICATED", "Authentication failed", 401);
+    }
+
+    if (!user) {
+      return createErrorResponse("UNAUTHENTICATED", "User not authenticated", 401);
+    }
+
+    // Create budgets service and delete budget income
+    const budgetsService = createBudgetsService(supabase);
+
+    try {
+      await budgetsService.deleteBudgetIncome(user.id, budgetId, incomeId);
+
+      console.log(`Budget income deleted successfully for user ${user.id}: budget ${budgetId}, income ${incomeId}`);
+      return createDeleteSuccessResponse();
+    } catch (serviceError) {
+      const errorMessage = serviceError instanceof Error ? serviceError.message : "Unknown error";
+
+      // Map service errors to HTTP responses
+      if (
+        errorMessage === "HOUSEHOLD_NOT_FOUND" ||
+        errorMessage === "BUDGET_NOT_FOUND" ||
+        errorMessage === "INCOME_NOT_FOUND"
+      ) {
+        return createErrorResponse("INCOME_NOT_FOUND", "Income not found or not accessible", 404);
+      }
+
+      if (errorMessage === "INCOME_DELETE_FAILED") {
+        console.error("Database error while deleting budget income:", serviceError);
+        return createErrorResponse("INCOME_DELETE_FAILED", "Failed to delete budget income", 500);
+      }
+
+      // Unexpected service error
+      console.error("Unexpected service error:", serviceError);
+      return createErrorResponse(
+        "INCOME_DELETE_FAILED",
+        "An unexpected error occurred while deleting budget income",
+        500
+      );
+    }
+  } catch (error) {
+    // Catch-all for unexpected errors
+    console.error("Unexpected error in DELETE /api/budgets/[budgetId]/incomes/[incomeId]:", error);
+    return createErrorResponse("INCOME_DELETE_FAILED", "An internal server error occurred", 500);
   }
 };
