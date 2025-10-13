@@ -15,6 +15,7 @@ import type {
   UpdateBudgetCommand,
   BudgetIncomesListResponseDto,
   UpdateBudgetIncomeCommand,
+  UpsertBudgetIncomesCommand,
 } from "../../types";
 
 export type SupabaseClientType = typeof supabaseClient;
@@ -1125,7 +1126,7 @@ export class BudgetsService {
       if (updateError.code === "PGRST116") {
         throw new Error("INCOME_NOT_FOUND");
       }
-      
+
       // Handle constraint violations (e.g., CHECK constraints)
       if (updateError.code === "23514" || updateError.message?.includes("CHECK")) {
         throw new Error("INVALID_AMOUNT");
@@ -1141,6 +1142,122 @@ export class BudgetsService {
 
     // Map the database result to DTO
     return this.mapIncomeToDto(updatedIncome);
+  }
+
+  /**
+   * Replaces the complete set of incomes for a specific budget.
+   * This method performs a full replacement - removes existing incomes not in the provided list
+   * and inserts/updates the provided incomes.
+   *
+   * @param userId - The ID of the user whose budget to update
+   * @param budgetId - The ID of the budget to update incomes for
+   * @param command - Command containing the new set of incomes
+   * @returns Promise resolving to the updated list of budget incomes
+   * @throws Error if household not found, budget not found, invalid members, or database error occurs
+   */
+  async replaceBudgetIncomes(
+    userId: string,
+    budgetId: string,
+    command: UpsertBudgetIncomesCommand
+  ): Promise<BudgetIncomesListResponseDto> {
+    // First, get the household_id for the user
+    const { data: householdData, error: householdError } = await this.supabase
+      .from("households")
+      .select("id")
+      .eq("user_id", userId)
+      .single();
+
+    if (householdError) {
+      if (householdError.code === "PGRST116") {
+        throw new Error("HOUSEHOLD_NOT_FOUND");
+      }
+      console.error("Database error while fetching household:", householdError);
+      throw new Error("INCOMES_UPSERT_FAILED");
+    }
+
+    if (!householdData) {
+      throw new Error("HOUSEHOLD_NOT_FOUND");
+    }
+
+    const householdId = householdData.id;
+
+    // Verify that the budget belongs to the user's household
+    const { data: budgetData, error: budgetError } = await this.supabase
+      .from("budgets")
+      .select("id")
+      .eq("id", budgetId)
+      .eq("household_id", householdId)
+      .single();
+
+    if (budgetError) {
+      if (budgetError.code === "PGRST116") {
+        throw new Error("BUDGET_NOT_FOUND");
+      }
+      console.error("Database error while fetching budget:", budgetError);
+      throw new Error("INCOMES_UPSERT_FAILED");
+    }
+
+    if (!budgetData) {
+      throw new Error("BUDGET_NOT_FOUND");
+    }
+
+    // Validate household members if incomes are provided
+    if (command.incomes.length > 0) {
+      const memberIds = command.incomes.map((income) => income.householdMemberId);
+      await this.validateHouseholdMembers(householdId, memberIds);
+    }
+
+    try {
+      // Delete existing incomes for this budget
+      const { error: deleteError } = await this.supabase.from("incomes").delete().eq("budget_id", budgetId);
+
+      if (deleteError) {
+        console.error("Database error while deleting existing incomes:", deleteError);
+        throw new Error("INCOMES_UPSERT_FAILED");
+      }
+
+      // Insert new incomes if provided
+      if (command.incomes.length > 0) {
+        const incomesToInsert = command.incomes.map((income) => ({
+          household_id: householdId,
+          budget_id: budgetId,
+          household_member_id: income.householdMemberId,
+          amount: income.amount,
+        }));
+
+        const { error: insertError } = await this.supabase.from("incomes").insert(incomesToInsert);
+
+        if (insertError) {
+          console.error("Database error while inserting new incomes:", insertError);
+
+          // Handle specific database constraint violations
+          if (insertError.code === "23505") {
+            // Unique constraint violation
+            throw new Error("DUPLICATE_MEMBER");
+          }
+          if (insertError.code === "23514" || insertError.code === "22001") {
+            // Check constraint or data too long
+            throw new Error("INVALID_AMOUNT");
+          }
+
+          throw new Error("INCOMES_UPSERT_FAILED");
+        }
+      }
+
+      // Return the updated list of incomes
+      return await this.listBudgetIncomes(userId, budgetId);
+    } catch (error) {
+      // Re-throw known errors
+      if (
+        error instanceof Error &&
+        ["DUPLICATE_MEMBER", "INVALID_AMOUNT", "INCOMES_UPSERT_FAILED"].includes(error.message)
+      ) {
+        throw error;
+      }
+
+      console.error("Unexpected error during income replacement:", error);
+      throw new Error("INCOMES_UPSERT_FAILED");
+    }
   }
 
   /**

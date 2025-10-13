@@ -17,14 +17,11 @@ const updateIncomeBodySchema = z.object({
     .number()
     .positive("Amount must be a positive number")
     .max(9999999.99, "Amount cannot exceed 9,999,999.99")
-    .refine(
-      (val) => {
-        // Check if the number has at most 2 decimal places
-        const decimalPlaces = (val.toString().split('.')[1] || '').length;
-        return decimalPlaces <= 2;
-      },
-      "Amount can have at most 2 decimal places"
-    ),
+    .refine((val) => {
+      // Check if the number has at most 2 decimal places
+      const decimalPlaces = (val.toString().split(".")[1] || "").length;
+      return decimalPlaces <= 2;
+    }, "Amount can have at most 2 decimal places"),
 });
 
 /**
@@ -86,13 +83,13 @@ export const PATCH: APIRoute = async ({ params, request, locals }) => {
     if (!paramsResult.success) {
       console.warn("Path parameters validation failed:", paramsResult.error);
       const firstError = paramsResult.error.errors[0];
-      
-      if (firstError?.path.includes('budgetId')) {
+
+      if (firstError?.path.includes("budgetId")) {
         return createErrorResponse("INVALID_BUDGET_ID", firstError?.message || "Invalid budget ID format", 400);
-      } else if (firstError?.path.includes('incomeId')) {
+      } else if (firstError?.path.includes("incomeId")) {
         return createErrorResponse("INVALID_INCOME_ID", firstError?.message || "Invalid income ID format", 400);
       }
-      
+
       return createErrorResponse("INVALID_PAYLOAD", firstError?.message || "Invalid path parameters", 400);
     }
 
@@ -151,7 +148,11 @@ export const PATCH: APIRoute = async ({ params, request, locals }) => {
       const errorMessage = serviceError instanceof Error ? serviceError.message : "Unknown error";
 
       // Map service errors to HTTP responses
-      if (errorMessage === "HOUSEHOLD_NOT_FOUND" || errorMessage === "BUDGET_NOT_FOUND" || errorMessage === "INCOME_NOT_FOUND") {
+      if (
+        errorMessage === "HOUSEHOLD_NOT_FOUND" ||
+        errorMessage === "BUDGET_NOT_FOUND" ||
+        errorMessage === "INCOME_NOT_FOUND"
+      ) {
         return createErrorResponse("INCOME_NOT_FOUND", "Income not found or not accessible", 404);
       }
 
