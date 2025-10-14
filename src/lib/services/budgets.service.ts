@@ -22,6 +22,7 @@ import type {
   TransactionDto,
   TransactionsListResponseDto,
   CreateTransactionCommand,
+  DashboardSummaryDto,
 } from "../../types";
 import type { ListTransactionsFilters } from "../validation/transactions";
 import { createPartialMatchPattern } from "../sql";
@@ -1926,6 +1927,100 @@ export class BudgetsService {
     // The new transaction will automatically be included in future summary calculations
 
     return this.mapTransactionToDto(transactionData);
+  }
+
+  /**
+   * Retrieves the current dashboard summary for the authenticated user's household.
+   * Selects the budget for the current month (YYYY-MM-01) or the latest previous budget if current doesn't exist.
+   * Includes financial totals and per-category breakdown with spending status.
+   *
+   * @param userId - The ID of the user whose dashboard to retrieve
+   * @returns Promise resolving to dashboard summary DTO
+   * @throws Error if household not found, no budget available, or database error occurs
+   */
+  async getCurrentDashboardSummary(userId: string): Promise<DashboardSummaryDto> {
+    // First, get the household_id for the user
+    const { data: householdData, error: householdError } = await this.supabase
+      .from("households")
+      .select("id")
+      .eq("user_id", userId)
+      .single();
+
+    if (householdError) {
+      if (householdError.code === "PGRST116") {
+        throw new Error("BUDGET_NOT_FOUND"); // Hide household existence from API response
+      }
+      console.error("Database error while fetching household:", householdError);
+      throw new Error("DASHBOARD_FETCH_FAILED");
+    }
+
+    if (!householdData) {
+      throw new Error("BUDGET_NOT_FOUND");
+    }
+
+    const householdId = householdData.id;
+
+    // Find the target budget: current month or latest previous
+    const currentMonth = new Date().toISOString().slice(0, 7) + "-01";
+
+    const { data: budgetData, error: budgetError } = await this.supabase
+      .from("budgets")
+      .select("id, month")
+      .eq("household_id", householdId)
+      .lte("month", currentMonth) // Only budgets up to current month
+      .order("month", { ascending: false })
+      .limit(1)
+      .single();
+
+    if (budgetError) {
+      if (budgetError.code === "PGRST116") {
+        throw new Error("BUDGET_NOT_FOUND");
+      }
+      console.error("Database error while fetching target budget:", budgetError);
+      throw new Error("DASHBOARD_FETCH_FAILED");
+    }
+
+    if (!budgetData) {
+      throw new Error("BUDGET_NOT_FOUND");
+    }
+
+    const budgetId = budgetData.id;
+    const budgetMonth = budgetData.month;
+
+    try {
+      // Fetch all related data in parallel
+      const [incomesData, plannedExpensesData, transactionsData] = await Promise.all([
+        this.getBudgetIncomes(budgetId, householdId, false), // Only active members
+        this.getBudgetPlannedExpenses(budgetId, householdId),
+        this.getBudgetTransactions(budgetId, householdId),
+      ]);
+
+      // Calculate summary totals
+      const totalIncome = incomesData.reduce((sum, income) => sum + income.amount, 0);
+      const totalPlanned = plannedExpensesData.reduce((sum, expense) => sum + expense.limitAmount, 0);
+      const totalSpent = transactionsData.reduce((sum, transaction) => sum + transaction.amount, 0);
+      const freeFunds = totalIncome - totalPlanned;
+
+      // Progress as ratio (0-1), not percentage
+      const progress = totalIncome > 0 ? totalSpent / totalIncome : 0;
+
+      // Calculate per-category summaries
+      const categories = await this.calculateCategorySummaries(plannedExpensesData, transactionsData, householdId);
+
+      return {
+        currentBudgetId: budgetId,
+        month: budgetMonth,
+        totalIncome,
+        totalPlanned,
+        totalSpent,
+        freeFunds,
+        progress,
+        categories,
+      };
+    } catch (error) {
+      console.error("Error fetching dashboard summary data:", error);
+      throw new Error("DASHBOARD_FETCH_FAILED");
+    }
   }
 
   /**
