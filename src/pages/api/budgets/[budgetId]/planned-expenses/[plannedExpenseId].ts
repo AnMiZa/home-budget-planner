@@ -62,6 +62,18 @@ function createSuccessResponse(data: BudgetPlannedExpenseDto): Response {
 }
 
 /**
+ * Creates a successful API response for deleted planned expense.
+ */
+function createDeleteSuccessResponse(): Response {
+  return new Response(null, {
+    status: 204,
+    headers: {
+      "X-Result-Code": "PLANNED_EXPENSE_DELETED",
+    },
+  });
+}
+
+/**
  * Parses and validates JSON request body.
  */
 async function parseRequestBody(request: Request): Promise<UpdatePlannedExpenseCommand> {
@@ -217,5 +229,133 @@ export const PATCH: APIRoute = async ({ params, request, locals }) => {
     // Catch-all for unexpected errors
     console.error("Unexpected error in PATCH /api/budgets/[budgetId]/planned-expenses/[plannedExpenseId]:", error);
     return createErrorResponse("PLANNED_EXPENSE_UPDATE_FAILED", "An internal server error occurred", 500);
+  }
+};
+
+/**
+ * DELETE /api/budgets/{budgetId}/planned-expenses/{plannedExpenseId}
+ *
+ * Deletes a single planned expense from a specific budget belonging to the authenticated user's household.
+ * This operation frees up the allocated funds from the budget.
+ * Validates ownership of both the budget and planned expense before performing the deletion.
+ *
+ * Path Parameters:
+ * - budgetId (string, required): UUID of the budget containing the planned expense
+ * - plannedExpenseId (string, required): UUID of the planned expense to delete
+ *
+ * Request Body: None (empty body expected)
+ *
+ * Responses:
+ * - 204: Planned expense deleted successfully with X-Result-Code: PLANNED_EXPENSE_DELETED
+ * - 400: Invalid request data (INVALID_BUDGET_ID, INVALID_PLANNED_EXPENSE_ID)
+ * - 401: User not authenticated (UNAUTHENTICATED)
+ * - 404: Budget or planned expense not found (PLANNED_EXPENSE_NOT_FOUND)
+ * - 500: Internal server error (PLANNED_EXPENSE_DELETE_FAILED)
+ */
+export const DELETE: APIRoute = async ({ params, request, locals }) => {
+  try {
+    // Validate path parameters
+    const paramsResult = paramsSchema.safeParse(params);
+    if (!paramsResult.success) {
+      const firstError = paramsResult.error.errors[0];
+      console.warn("Path parameters validation failed:", firstError);
+
+      // Determine which parameter failed
+      if (firstError?.path?.[0] === "budgetId") {
+        return createErrorResponse("INVALID_BUDGET_ID", firstError?.message || "Invalid budget ID format", 400);
+      }
+      if (firstError?.path?.[0] === "plannedExpenseId") {
+        return createErrorResponse(
+          "INVALID_PLANNED_EXPENSE_ID",
+          firstError?.message || "Invalid planned expense ID format",
+          400
+        );
+      }
+
+      return createErrorResponse("INVALID_PAYLOAD", "Invalid path parameters", 400);
+    }
+
+    const { budgetId, plannedExpenseId } = paramsResult.data;
+
+    // Verify request body is empty (optional validation)
+    try {
+      const contentLength = request.headers.get("content-length");
+      if (contentLength && parseInt(contentLength) > 0) {
+        const body = await request.text();
+        if (body.trim().length > 0) {
+          console.warn("DELETE request received with non-empty body");
+          return createErrorResponse("INVALID_PAYLOAD", "DELETE request should not contain a body", 400);
+        }
+      }
+    } catch (error) {
+      // If we can't read the body, continue - it's likely empty
+      console.warn("Could not validate empty body:", error);
+    }
+
+    // Get Supabase client from locals
+    const supabase = locals.supabase;
+    if (!supabase) {
+      console.error("Supabase client not available in locals");
+      return createErrorResponse("PLANNED_EXPENSE_DELETE_FAILED", "Database connection not available", 500);
+    }
+
+    // Get authenticated user
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser();
+
+    if (authError) {
+      console.error("Authentication error:", authError);
+      return createErrorResponse("UNAUTHENTICATED", "Authentication failed", 401);
+    }
+
+    if (!user) {
+      return createErrorResponse("UNAUTHENTICATED", "User not authenticated", 401);
+    }
+
+    // Create budgets service and delete planned expense
+    const budgetsService = createBudgetsService(supabase);
+
+    try {
+      await budgetsService.deleteBudgetPlannedExpense(user.id, budgetId, plannedExpenseId);
+
+      console.log(
+        `Planned expense deleted successfully for user ${user.id}: budget ${budgetId}, expense ${plannedExpenseId}`
+      );
+      return createDeleteSuccessResponse();
+    } catch (serviceError) {
+      const errorMessage = serviceError instanceof Error ? serviceError.message : "Unknown error";
+
+      // Map service errors to HTTP responses
+      if (errorMessage === "HOUSEHOLD_NOT_FOUND") {
+        return createErrorResponse("PLANNED_EXPENSE_NOT_FOUND", "No household found for the authenticated user", 404);
+      }
+
+      if (errorMessage === "BUDGET_NOT_FOUND") {
+        return createErrorResponse("PLANNED_EXPENSE_NOT_FOUND", "Budget not found or not accessible", 404);
+      }
+
+      if (errorMessage === "PLANNED_EXPENSE_NOT_FOUND") {
+        return createErrorResponse("PLANNED_EXPENSE_NOT_FOUND", "Planned expense not found or not accessible", 404);
+      }
+
+      if (errorMessage === "PLANNED_EXPENSE_DELETE_FAILED") {
+        console.error("Database error while deleting planned expense:", serviceError);
+        return createErrorResponse("PLANNED_EXPENSE_DELETE_FAILED", "Failed to delete planned expense", 500);
+      }
+
+      // Unexpected service error
+      console.error("Unexpected service error:", serviceError);
+      return createErrorResponse(
+        "PLANNED_EXPENSE_DELETE_FAILED",
+        "An unexpected error occurred while deleting planned expense",
+        500
+      );
+    }
+  } catch (error) {
+    // Catch-all for unexpected errors
+    console.error("Unexpected error in DELETE /api/budgets/[budgetId]/planned-expenses/[plannedExpenseId]:", error);
+    return createErrorResponse("PLANNED_EXPENSE_DELETE_FAILED", "An internal server error occurred", 500);
   }
 };

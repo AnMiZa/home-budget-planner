@@ -1627,6 +1627,95 @@ export class BudgetsService {
   }
 
   /**
+   * Deletes a planned expense from a budget belonging to the user's household.
+   * This operation frees up the allocated funds from the budget.
+   *
+   * @param userId - The ID of the user who owns the household
+   * @param budgetId - The ID of the budget containing the planned expense
+   * @param plannedExpenseId - The ID of the planned expense to delete
+   * @throws {Error} HOUSEHOLD_NOT_FOUND - If no household exists for the user
+   * @throws {Error} BUDGET_NOT_FOUND - If the budget doesn't exist or doesn't belong to the user's household
+   * @throws {Error} PLANNED_EXPENSE_NOT_FOUND - If the planned expense doesn't exist or doesn't belong to the budget
+   * @throws {Error} PLANNED_EXPENSE_DELETE_FAILED - If the database operation fails
+   */
+  async deleteBudgetPlannedExpense(userId: string, budgetId: string, plannedExpenseId: string): Promise<void> {
+    // First, get the household_id for the user
+    const { data: householdData, error: householdError } = await this.supabase
+      .from("households")
+      .select("id")
+      .eq("user_id", userId)
+      .single();
+
+    if (householdError) {
+      if (householdError.code === "PGRST116") {
+        throw new Error("HOUSEHOLD_NOT_FOUND");
+      }
+      console.error("Database error while fetching household:", householdError);
+      throw new Error("PLANNED_EXPENSE_DELETE_FAILED");
+    }
+
+    if (!householdData) {
+      throw new Error("HOUSEHOLD_NOT_FOUND");
+    }
+
+    const householdId = householdData.id;
+
+    // Verify that the budget exists and belongs to the user's household
+    const { data: budgetData, error: budgetError } = await this.supabase
+      .from("budgets")
+      .select("id")
+      .eq("id", budgetId)
+      .eq("household_id", householdId)
+      .single();
+
+    if (budgetError) {
+      if (budgetError.code === "PGRST116") {
+        throw new Error("BUDGET_NOT_FOUND");
+      }
+      console.error("Database error while fetching budget:", budgetError);
+      throw new Error("PLANNED_EXPENSE_DELETE_FAILED");
+    }
+
+    if (!budgetData) {
+      throw new Error("BUDGET_NOT_FOUND");
+    }
+
+    // First check if the planned expense exists before attempting to delete
+    const { data: existingExpense, error: checkError } = await this.supabase
+      .from("planned_expenses")
+      .select("id")
+      .eq("id", plannedExpenseId)
+      .eq("budget_id", budgetId)
+      .eq("household_id", householdId)
+      .single();
+
+    if (checkError) {
+      if (checkError.code === "PGRST116") {
+        throw new Error("PLANNED_EXPENSE_NOT_FOUND");
+      }
+      console.error("Database error while checking planned expense existence:", checkError);
+      throw new Error("PLANNED_EXPENSE_DELETE_FAILED");
+    }
+
+    if (!existingExpense) {
+      throw new Error("PLANNED_EXPENSE_NOT_FOUND");
+    }
+
+    // Delete the planned expense record
+    const { error: deleteError } = await this.supabase
+      .from("planned_expenses")
+      .delete()
+      .eq("id", plannedExpenseId)
+      .eq("budget_id", budgetId)
+      .eq("household_id", householdId);
+
+    if (deleteError) {
+      console.error("Database error while deleting planned expense:", deleteError);
+      throw new Error("PLANNED_EXPENSE_DELETE_FAILED");
+    }
+  }
+
+  /**
    * Maps a database income record to BudgetIncomeDto.
    *
    * @param income - The income record from the database
