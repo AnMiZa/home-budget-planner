@@ -1,5 +1,5 @@
 import { z } from "zod";
-import type { CreateTransactionCommand } from "../../types";
+import type { CreateTransactionCommand, UpdateTransactionCommand } from "../../types";
 
 /**
  * Validation schema for creating a new transaction.
@@ -44,6 +44,80 @@ export type CreateTransactionData = z.infer<typeof createTransactionSchema>;
  */
 export function parseCreateTransactionBody(body: unknown): CreateTransactionCommand {
   const result = createTransactionSchema.safeParse(body);
+
+  if (!result.success) {
+    const firstError = result.error.errors[0];
+
+    // Map specific field errors to detailed error codes
+    const fieldErrorMap: Record<string, string> = {
+      categoryId: "INVALID_CATEGORY_ID",
+      amount: "INVALID_AMOUNT",
+      transactionDate: "INVALID_DATE",
+      note: "INVALID_NOTE",
+    };
+
+    const errorCode = fieldErrorMap[firstError.path[0] as string] || "INVALID_BODY";
+    throw new Error(`${errorCode}: ${firstError.message}`);
+  }
+
+  return result.data;
+}
+
+/**
+ * Validation schema for updating an existing transaction.
+ * All fields are optional, but at least one field must be provided.
+ */
+export const updateTransactionSchema = z
+  .object({
+    categoryId: z.string().uuid("Category ID must be a valid UUID").optional(),
+
+    amount: z
+      .number({
+        invalid_type_error: "Amount must be a number",
+      })
+      .positive("Amount must be greater than 0")
+      .refine((val) => {
+        // Check if the number has at most 2 decimal places
+        const decimalPlaces = (val.toString().split(".")[1] || "").length;
+        return decimalPlaces <= 2;
+      }, "Amount cannot have more than 2 decimal places")
+      .optional(),
+
+    transactionDate: z
+      .string({
+        invalid_type_error: "Transaction date must be a string",
+      })
+      .regex(/^\d{4}-\d{2}-\d{2}$/, "Transaction date must be in YYYY-MM-DD format")
+      .refine((date) => !isNaN(Date.parse(date)), "Transaction date must be a valid date")
+      .optional(),
+
+    note: z.union([z.string().max(500, "Note cannot exceed 500 characters"), z.null()]).optional(),
+  })
+  .refine(
+    (data) => {
+      // At least one field must be provided
+      return Object.values(data).some((value) => value !== undefined);
+    },
+    {
+      message: "At least one field must be provided for update",
+      path: [],
+    }
+  );
+
+/**
+ * Type for validated update transaction data.
+ */
+export type UpdateTransactionData = z.infer<typeof updateTransactionSchema>;
+
+/**
+ * Parses and validates update transaction request body.
+ *
+ * @param body - Request body to validate
+ * @returns Validated UpdateTransactionCommand
+ * @throws Error with validation details if body is invalid
+ */
+export function parseUpdateTransactionBody(body: unknown): UpdateTransactionCommand {
+  const result = updateTransactionSchema.safeParse(body);
 
   if (!result.success) {
     const firstError = result.error.errors[0];
