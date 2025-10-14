@@ -183,6 +183,77 @@ export class TransactionsService {
   }
 
   /**
+   * Deletes a transaction for the authenticated user's household.
+   *
+   * @param userId - The authenticated user's ID
+   * @param transactionId - The transaction ID to delete
+   * @returns Promise resolving when transaction is successfully deleted
+   * @throws Error with specific error codes for different failure scenarios
+   */
+  async deleteTransaction(userId: string, transactionId: string): Promise<void> {
+    // First, get the household_id for the user
+    const { data: householdData, error: householdError } = await this.supabase
+      .from("households")
+      .select("id")
+      .eq("user_id", userId)
+      .single();
+
+    if (householdError) {
+      console.error("Error fetching household for user:", householdError);
+      throw new Error("TRANSACTION_DELETE_FAILED");
+    }
+
+    if (!householdData) {
+      // User has no household - treat as transaction not found to avoid revealing data structure
+      throw new Error("TRANSACTION_NOT_FOUND");
+    }
+
+    // First, verify the transaction exists and belongs to the user's household
+    // We need to get the budget_id for potential budget summary refresh
+    const { data: existingTransaction, error: fetchError } = await this.supabase
+      .from("transactions")
+      .select("id, budget_id")
+      .eq("id", transactionId)
+      .eq("household_id", householdData.id)
+      .single();
+
+    if (fetchError) {
+      if (fetchError.code === "PGRST116") {
+        // No rows returned - transaction not found or doesn't belong to user's household
+        throw new Error("TRANSACTION_NOT_FOUND");
+      }
+      console.error("Error fetching transaction for deletion:", fetchError);
+      throw new Error("TRANSACTION_DELETE_FAILED");
+    }
+
+    if (!existingTransaction) {
+      throw new Error("TRANSACTION_NOT_FOUND");
+    }
+
+    // Perform the deletion
+    const { error: deleteError, count } = await this.supabase
+      .from("transactions")
+      .delete({ count: "exact" })
+      .eq("id", transactionId)
+      .eq("household_id", householdData.id);
+
+    if (deleteError) {
+      console.error("Error deleting transaction:", deleteError);
+      throw new Error("TRANSACTION_DELETE_FAILED");
+    }
+
+    // Verify deletion was successful
+    if (count === 0) {
+      // This shouldn't happen since we verified existence above, but handle it
+      throw new Error("TRANSACTION_NOT_FOUND");
+    }
+
+    // Note: Budget summary refresh logic would be implemented here if needed
+    // For now, we rely on database triggers or separate budget recalculation processes
+    // This follows the pattern established in other transaction operations
+  }
+
+  /**
    * Maps a database transaction record to TransactionDto.
    *
    * This method is duplicated from BudgetsService to maintain service independence.

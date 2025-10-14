@@ -52,6 +52,18 @@ function createUpdateSuccessResponse(data: TransactionDto): Response {
 }
 
 /**
+ * Creates a successful API response for transaction deletion.
+ */
+function createDeleteSuccessResponse(): Response {
+  return new Response(null, {
+    status: 204,
+    headers: {
+      "X-Result-Code": "TRANSACTION_DELETED",
+    },
+  });
+}
+
+/**
  * GET /api/transactions/{transactionId}
  *
  * Retrieves a single transaction by ID for the authenticated user's household.
@@ -220,6 +232,78 @@ export const PATCH: APIRoute = async ({ locals, params, request }) => {
     }
   } catch (error) {
     console.error("Unhandled error in PATCH /api/transactions/[transactionId]:", error);
+    return createErrorResponse("INTERNAL_SERVER_ERROR", "An unexpected error occurred", 500);
+  }
+};
+
+/**
+ * DELETE /api/transactions/{transactionId}
+ *
+ * Deletes a single transaction by ID for the authenticated user's household.
+ *
+ * Path Parameters:
+ * - transactionId: UUID of the transaction to delete
+ *
+ * Responses:
+ * - 204: Transaction deleted successfully
+ * - 400: Invalid transaction ID format
+ * - 401: User not authenticated
+ * - 404: Transaction not found or doesn't belong to user's household
+ * - 500: Internal server error
+ */
+export const DELETE: APIRoute = async ({ locals, params }) => {
+  try {
+    // Check if Supabase client is available
+    if (!locals.supabase) {
+      console.error("Supabase client not available in locals");
+      return createErrorResponse("INTERNAL_SERVER_ERROR", "Service temporarily unavailable", 500);
+    }
+
+    // Authenticate user
+    const { data: authData, error: authError } = await locals.supabase.auth.getUser();
+
+    if (authError) {
+      console.error("Authentication error:", authError);
+      return createErrorResponse("UNAUTHENTICATED", "Authentication required", 401);
+    }
+
+    if (!authData.user) {
+      return createErrorResponse("UNAUTHENTICATED", "Authentication required", 401);
+    }
+
+    // Validate transaction ID parameter
+    let transactionId: string;
+    try {
+      transactionId = parseTransactionIdParam(params as { transactionId: string });
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : "Invalid transaction ID";
+      const [code, message] = errorMessage.includes(":")
+        ? errorMessage.split(": ", 2)
+        : ["INVALID_TRANSACTION_ID", errorMessage];
+      return createErrorResponse(code, message, 400);
+    }
+
+    // Create service and delete transaction
+    const transactionsService = createTransactionsService(locals.supabase);
+
+    try {
+      await transactionsService.deleteTransaction(authData.user.id, transactionId);
+      return createDeleteSuccessResponse();
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : "Unknown error";
+
+      switch (errorMessage) {
+        case "TRANSACTION_NOT_FOUND":
+          return createErrorResponse("TRANSACTION_NOT_FOUND", "Transaction not found or access denied", 404);
+        case "TRANSACTION_DELETE_FAILED":
+          return createErrorResponse("TRANSACTION_DELETE_FAILED", "Failed to delete transaction", 500);
+        default:
+          console.error("Unexpected error in DELETE /api/transactions/[transactionId]:", error);
+          return createErrorResponse("INTERNAL_SERVER_ERROR", "An unexpected error occurred", 500);
+      }
+    }
+  } catch (error) {
+    console.error("Unhandled error in DELETE /api/transactions/[transactionId]:", error);
     return createErrorResponse("INTERNAL_SERVER_ERROR", "An unexpected error occurred", 500);
   }
 };
