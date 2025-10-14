@@ -1,7 +1,13 @@
 import type { APIRoute } from "astro";
 import { z } from "zod";
 import { createBudgetsService } from "../../../../lib/services/budgets.service";
-import type { ApiErrorDto, PlannedExpensesListResponseDto, UpsertPlannedExpensesCommand } from "../../../../types";
+import { parseCreatePlannedExpenseBody, parseGetBudgetSummaryParams } from "../../../../lib/validation/budgets";
+import type {
+  ApiErrorDto,
+  PlannedExpensesListResponseDto,
+  UpsertPlannedExpensesCommand,
+  BudgetPlannedExpenseDto,
+} from "../../../../types";
 
 export const prerender = false;
 
@@ -73,6 +79,19 @@ function createSuccessResponse(data: PlannedExpensesListResponseDto, resultCode 
     headers: {
       "Content-Type": "application/json; charset=utf-8",
       "X-Result-Code": resultCode,
+    },
+  });
+}
+
+/**
+ * Creates a successful API response for created planned expense.
+ */
+function createCreatedResponse(data: BudgetPlannedExpenseDto): Response {
+  return new Response(JSON.stringify(data), {
+    status: 201,
+    headers: {
+      "Content-Type": "application/json; charset=utf-8",
+      "X-Result-Code": "PLANNED_EXPENSE_CREATED",
     },
   });
 }
@@ -323,5 +342,140 @@ export const PUT: APIRoute = async ({ params, request, locals }) => {
     // Catch-all for unexpected errors
     console.error("Unexpected error in PUT /api/budgets/[budgetId]/planned-expenses:", error);
     return createErrorResponse("PLANNED_EXPENSES_UPSERT_FAILED", "An internal server error occurred", 500);
+  }
+};
+
+/**
+ * POST /api/budgets/{budgetId}/planned-expenses
+ *
+ * Creates a new planned expense for a specific budget belonging to the authenticated user's household.
+ * Validates that the category exists and belongs to the household, and ensures no duplicate category exists for the same budget.
+ *
+ * Path Parameters:
+ * - budgetId (string, required): UUID of the budget to add the planned expense to
+ *
+ * Request Body:
+ * - categoryId (string, required): UUID of the category
+ * - limitAmount (number, required): Positive amount with max 2 decimal places, max 9,999,999.99
+ *
+ * Responses:
+ * - 201: Planned expense created successfully with X-Result-Code: PLANNED_EXPENSE_CREATED
+ * - 400: Invalid request data (INVALID_PAYLOAD, INVALID_LIMIT, DUPLICATE_CATEGORY, CATEGORY_NOT_FOUND)
+ * - 401: User not authenticated (UNAUTHENTICATED)
+ * - 404: Budget or household not found (BUDGET_NOT_FOUND)
+ * - 500: Internal server error (PLANNED_EXPENSE_CREATE_FAILED)
+ */
+export const POST: APIRoute = async ({ params, request, locals }) => {
+  try {
+    // Validate path parameters
+    let budgetId: string;
+    try {
+      const validatedParams = parseGetBudgetSummaryParams(params);
+      budgetId = validatedParams.budgetId;
+    } catch (parseError) {
+      console.warn("Budget ID validation failed:", parseError);
+      return createErrorResponse("INVALID_PAYLOAD", "Invalid budget ID format", 400);
+    }
+
+    // Parse and validate request body
+    let requestBody;
+    try {
+      requestBody = await request.json();
+    } catch (jsonError) {
+      console.warn("Invalid JSON in request body:", jsonError);
+      return createErrorResponse("INVALID_PAYLOAD", "Invalid JSON format in request body", 400);
+    }
+
+    let command;
+    try {
+      command = parseCreatePlannedExpenseBody(requestBody);
+    } catch (validationError) {
+      const errorMessage = validationError instanceof Error ? validationError.message : "Unknown error";
+      console.warn("Request body validation failed:", validationError);
+
+      if (errorMessage === "INVALID_LIMIT") {
+        return createErrorResponse("INVALID_LIMIT", "Invalid limit amount format or value", 400);
+      }
+
+      return createErrorResponse("INVALID_PAYLOAD", "Invalid request body format", 400);
+    }
+
+    // Get Supabase client from locals
+    const supabase = locals.supabase;
+    if (!supabase) {
+      console.error("Supabase client not available in locals");
+      return createErrorResponse("PLANNED_EXPENSE_CREATE_FAILED", "Database connection not available", 500);
+    }
+
+    // Get authenticated user
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser();
+
+    if (authError) {
+      console.error("Authentication error:", authError);
+      return createErrorResponse("UNAUTHENTICATED", "Authentication failed", 401);
+    }
+
+    if (!user) {
+      return createErrorResponse("UNAUTHENTICATED", "User not authenticated", 401);
+    }
+
+    // Create budgets service and create planned expense
+    const budgetsService = createBudgetsService(supabase);
+
+    try {
+      const result = await budgetsService.createBudgetPlannedExpense(user.id, budgetId, command);
+
+      console.log(
+        `Planned expense created successfully for user ${user.id}: budget ${budgetId}, category ${command.categoryId}, amount ${command.limitAmount}`
+      );
+      return createCreatedResponse(result);
+    } catch (serviceError) {
+      const errorMessage = serviceError instanceof Error ? serviceError.message : "Unknown error";
+
+      // Map service errors to HTTP responses
+      if (errorMessage === "HOUSEHOLD_NOT_FOUND") {
+        return createErrorResponse("BUDGET_NOT_FOUND", "No household found for the authenticated user", 404);
+      }
+
+      if (errorMessage === "BUDGET_NOT_FOUND") {
+        return createErrorResponse("BUDGET_NOT_FOUND", "Budget not found or not accessible", 404);
+      }
+
+      if (errorMessage === "CATEGORY_NOT_FOUND") {
+        return createErrorResponse("CATEGORY_NOT_FOUND", "Category not found or not accessible", 400);
+      }
+
+      if (errorMessage === "DUPLICATE_CATEGORY") {
+        return createErrorResponse(
+          "DUPLICATE_CATEGORY",
+          "A planned expense already exists for this category in the budget",
+          400
+        );
+      }
+
+      if (errorMessage === "INVALID_LIMIT") {
+        return createErrorResponse("INVALID_LIMIT", "Invalid limit amount detected during database operation", 400);
+      }
+
+      if (errorMessage === "PLANNED_EXPENSE_CREATE_FAILED") {
+        console.error("Database error while creating planned expense:", serviceError);
+        return createErrorResponse("PLANNED_EXPENSE_CREATE_FAILED", "Failed to create planned expense", 500);
+      }
+
+      // Unexpected service error
+      console.error("Unexpected service error:", serviceError);
+      return createErrorResponse(
+        "PLANNED_EXPENSE_CREATE_FAILED",
+        "An unexpected error occurred while creating planned expense",
+        500
+      );
+    }
+  } catch (error) {
+    // Catch-all for unexpected errors
+    console.error("Unexpected error in POST /api/budgets/[budgetId]/planned-expenses:", error);
+    return createErrorResponse("PLANNED_EXPENSE_CREATE_FAILED", "An internal server error occurred", 500);
   }
 };

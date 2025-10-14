@@ -1723,6 +1723,128 @@ export class BudgetsService {
   }
 
   /**
+   * Creates a new planned expense for a specific budget belonging to the user's household.
+   * Validates that the category exists and belongs to the household, and ensures no duplicate
+   * category exists for the same budget.
+   *
+   * @param userId - The ID of the user who owns the household
+   * @param budgetId - The ID of the budget to add the planned expense to
+   * @param command - The planned expense data containing categoryId and limitAmount
+   * @returns Promise resolving to the created planned expense DTO
+   * @throws {Error} HOUSEHOLD_NOT_FOUND - If no household exists for the user
+   * @throws {Error} BUDGET_NOT_FOUND - If the budget doesn't exist or doesn't belong to the user's household
+   * @throws {Error} CATEGORY_NOT_FOUND - If the category doesn't exist or doesn't belong to the user's household
+   * @throws {Error} DUPLICATE_CATEGORY - If a planned expense already exists for this category in the budget
+   * @throws {Error} INVALID_LIMIT - If the limit amount violates database constraints
+   * @throws {Error} PLANNED_EXPENSE_CREATE_FAILED - If the database operation fails
+   */
+  async createBudgetPlannedExpense(
+    userId: string,
+    budgetId: string,
+    command: { categoryId: string; limitAmount: number }
+  ): Promise<BudgetPlannedExpenseDto> {
+    // First, get the household_id for the user
+    const { data: householdData, error: householdError } = await this.supabase
+      .from("households")
+      .select("id")
+      .eq("user_id", userId)
+      .single();
+
+    if (householdError) {
+      if (householdError.code === "PGRST116") {
+        throw new Error("HOUSEHOLD_NOT_FOUND");
+      }
+      console.error("Database error while fetching household:", householdError);
+      throw new Error("PLANNED_EXPENSE_CREATE_FAILED");
+    }
+
+    if (!householdData) {
+      throw new Error("HOUSEHOLD_NOT_FOUND");
+    }
+
+    const householdId = householdData.id;
+
+    // Verify that the budget exists and belongs to the user's household
+    const { data: budgetData, error: budgetError } = await this.supabase
+      .from("budgets")
+      .select("id")
+      .eq("id", budgetId)
+      .eq("household_id", householdId)
+      .single();
+
+    if (budgetError) {
+      if (budgetError.code === "PGRST116") {
+        throw new Error("BUDGET_NOT_FOUND");
+      }
+      console.error("Database error while fetching budget:", budgetError);
+      throw new Error("PLANNED_EXPENSE_CREATE_FAILED");
+    }
+
+    if (!budgetData) {
+      throw new Error("BUDGET_NOT_FOUND");
+    }
+
+    // Validate that the category exists and belongs to the household
+    await this.validateCategories(householdId, [command.categoryId]);
+
+    // Check if a planned expense already exists for this category in the budget
+    const { data: existingExpense, error: checkError } = await this.supabase
+      .from("planned_expenses")
+      .select("id")
+      .eq("budget_id", budgetId)
+      .eq("category_id", command.categoryId)
+      .eq("household_id", householdId)
+      .single();
+
+    if (checkError && checkError.code !== "PGRST116") {
+      console.error("Database error while checking for existing planned expense:", checkError);
+      throw new Error("PLANNED_EXPENSE_CREATE_FAILED");
+    }
+
+    if (existingExpense) {
+      throw new Error("DUPLICATE_CATEGORY");
+    }
+
+    // Insert the new planned expense
+    const { data: newPlannedExpense, error: insertError } = await this.supabase
+      .from("planned_expenses")
+      .insert({
+        household_id: householdId,
+        budget_id: budgetId,
+        category_id: command.categoryId,
+        limit_amount: command.limitAmount,
+      })
+      .select("id, category_id, limit_amount, created_at, updated_at")
+      .single();
+
+    if (insertError) {
+      // Handle specific database constraint violations
+      if (insertError.code === "23505") {
+        // Unique constraint violation (duplicate category)
+        throw new Error("DUPLICATE_CATEGORY");
+      }
+      if (insertError.code === "23514") {
+        // Check constraint violation (invalid limit amount)
+        throw new Error("INVALID_LIMIT");
+      }
+      if (insertError.code === "23503") {
+        // Foreign key constraint violation (invalid category or budget)
+        throw new Error("CATEGORY_NOT_FOUND");
+      }
+
+      console.error("Database error while creating planned expense:", insertError);
+      throw new Error("PLANNED_EXPENSE_CREATE_FAILED");
+    }
+
+    if (!newPlannedExpense) {
+      throw new Error("PLANNED_EXPENSE_CREATE_FAILED");
+    }
+
+    // Map the database result to DTO
+    return this.mapPlannedExpenseToDto(newPlannedExpense);
+  }
+
+  /**
    * Lists transactions for a specific budget that belongs to the authenticated user's household.
    * Supports filtering by category, date range, note search, pagination, and sorting.
    *

@@ -303,6 +303,21 @@
   - Success: 200 OK — `PLANNED_EXPENSES_LISTED`.
   - Errors: 404 `BUDGET_NOT_FOUND`.
 
+- **POST `/api/budgets/{budgetId}/planned-expenses`**
+  - Description: Adds a planned expense limit for a category in the budget.
+  - Request JSON:
+
+    ```json
+    {
+      "categoryId": "uuid",
+      "limitAmount": 1200.0
+    }
+    ```
+
+  - Response JSON returns the created planned expense record.
+  - Success: 201 Created — `PLANNED_EXPENSE_CREATED`.
+  - Errors: 400 `INVALID_LIMIT`; 400 `DUPLICATE_CATEGORY`; 404 `BUDGET_NOT_FOUND`; 404 `CATEGORY_NOT_FOUND`.
+
 - **PUT `/api/budgets/{budgetId}/planned-expenses`**
   - Description: Replaces entire plan; used in edit flow.
   - Request JSON:
