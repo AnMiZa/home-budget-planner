@@ -19,7 +19,11 @@ import type {
   PlannedExpensesListResponseDto,
   UpsertPlannedExpensesCommand,
   UpdatePlannedExpenseCommand,
+  TransactionDto,
+  TransactionsListResponseDto,
 } from "../../types";
+import type { ListTransactionsFilters } from "../validation/transactions";
+import { createPartialMatchPattern } from "../sql";
 
 export type SupabaseClientType = typeof supabaseClient;
 
@@ -1716,6 +1720,116 @@ export class BudgetsService {
   }
 
   /**
+   * Lists transactions for a specific budget that belongs to the authenticated user's household.
+   * Supports filtering by category, date range, note search, pagination, and sorting.
+   *
+   * @param userId - The ID of the user whose budget transactions to retrieve
+   * @param budgetId - The ID of the budget to retrieve transactions for
+   * @param filters - Filters for pagination, sorting, and data filtering
+   * @returns Promise resolving to paginated list of transactions
+   * @throws Error if household not found, budget not found, or database error occurs
+   */
+  async listBudgetTransactions(
+    userId: string,
+    budgetId: string,
+    filters: ListTransactionsFilters
+  ): Promise<TransactionsListResponseDto> {
+    // First, get the household_id for the user
+    const { data: householdData, error: householdError } = await this.supabase
+      .from("households")
+      .select("id")
+      .eq("user_id", userId)
+      .single();
+
+    if (householdError || !householdData) {
+      console.error("Error fetching household for user:", householdError);
+      throw new Error("HOUSEHOLD_NOT_FOUND");
+    }
+
+    const householdId = householdData.id;
+
+    // Verify that the budget exists and belongs to the user's household
+    const { data: budgetData, error: budgetError } = await this.supabase
+      .from("budgets")
+      .select("id")
+      .eq("id", budgetId)
+      .eq("household_id", householdId)
+      .single();
+
+    if (budgetError || !budgetData) {
+      console.error("Error fetching budget:", budgetError);
+      throw new Error("BUDGET_NOT_FOUND");
+    }
+
+    // Build the query with filters
+    let query = this.supabase
+      .from("transactions")
+      .select("id, category_id, amount, transaction_date, note, created_at, updated_at", { count: "exact" })
+      .eq("household_id", householdId)
+      .eq("budget_id", budgetId);
+
+    // Apply filters
+    if (filters.categoryId) {
+      query = query.eq("category_id", filters.categoryId);
+    }
+
+    if (filters.fromDate) {
+      query = query.gte("transaction_date", filters.fromDate);
+    }
+
+    if (filters.toDate) {
+      query = query.lte("transaction_date", filters.toDate);
+    }
+
+    if (filters.searchNote) {
+      const searchPattern = createPartialMatchPattern(filters.searchNote);
+      query = query.ilike("note", searchPattern);
+    }
+
+    // Apply sorting
+    switch (filters.sort) {
+      case "date_desc":
+        query = query.order("transaction_date", { ascending: false });
+        break;
+      case "amount_desc":
+        query = query.order("amount", { ascending: false });
+        break;
+      case "amount_asc":
+        query = query.order("amount", { ascending: true });
+        break;
+    }
+
+    // Apply pagination
+    const offset = (filters.page - 1) * filters.pageSize;
+    query = query.range(offset, offset + filters.pageSize - 1);
+
+    // Execute the query
+    const { data: transactions, error: transactionsError, count } = await query;
+
+    if (transactionsError) {
+      console.error("Error fetching transactions:", transactionsError);
+      throw new Error("TRANSACTIONS_LIST_FAILED");
+    }
+
+    // Map transactions to DTOs
+    const transactionDtos: TransactionDto[] = (transactions || []).map(this.mapTransactionToDto);
+
+    // Calculate pagination metadata
+    const totalItems = count || 0;
+    const totalPages = Math.ceil(totalItems / filters.pageSize);
+
+    return {
+      data: transactionDtos,
+      meta: {
+        page: filters.page,
+        pageSize: filters.pageSize,
+        totalItems,
+        totalPages,
+      },
+    };
+  }
+
+  /**
    * Maps a database income record to BudgetIncomeDto.
    *
    * @param income - The income record from the database
@@ -1744,6 +1858,26 @@ export class BudgetsService {
       limitAmount: plannedExpense.limit_amount,
       createdAt: plannedExpense.created_at,
       updatedAt: plannedExpense.updated_at,
+    };
+  }
+
+  /**
+   * Maps a database transaction record to TransactionDto.
+   *
+   * @param transaction - The transaction record from the database
+   * @returns Mapped TransactionDto
+   */
+  private mapTransactionToDto(transaction: any): TransactionDto {
+    return {
+      id: transaction.id,
+      householdId: transaction.household_id,
+      budgetId: transaction.budget_id,
+      categoryId: transaction.category_id,
+      amount: Number(transaction.amount),
+      transactionDate: transaction.transaction_date,
+      note: transaction.note,
+      createdAt: transaction.created_at,
+      updatedAt: transaction.updated_at,
     };
   }
 }
