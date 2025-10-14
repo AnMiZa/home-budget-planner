@@ -21,6 +21,7 @@ import type {
   UpdatePlannedExpenseCommand,
   TransactionDto,
   TransactionsListResponseDto,
+  CreateTransactionCommand,
 } from "../../types";
 import type { ListTransactionsFilters } from "../validation/transactions";
 import { createPartialMatchPattern } from "../sql";
@@ -1827,6 +1828,104 @@ export class BudgetsService {
         totalPages,
       },
     };
+  }
+
+  /**
+   * Creates a new transaction for a specific budget that belongs to the authenticated user's household.
+   * Validates that the budget exists, the category belongs to the household, and creates the transaction.
+   *
+   * @param userId - The ID of the user creating the transaction
+   * @param budgetId - The ID of the budget to create the transaction for
+   * @param command - The transaction creation command
+   * @returns Promise resolving to the created transaction DTO
+   * @throws Error if household not found, budget not found, category mismatch, or database error occurs
+   */
+  async createBudgetTransaction(
+    userId: string,
+    budgetId: string,
+    command: CreateTransactionCommand
+  ): Promise<TransactionDto> {
+    const { categoryId, amount, transactionDate, note } = command;
+
+    // First, get the household_id for the user
+    const { data: householdData, error: householdError } = await this.supabase
+      .from("households")
+      .select("id")
+      .eq("user_id", userId)
+      .single();
+
+    if (householdError) {
+      if (householdError.code === "PGRST116") {
+        throw new Error("HOUSEHOLD_NOT_FOUND");
+      }
+      console.error("Database error while fetching household:", householdError);
+      throw new Error("TRANSACTION_CREATE_FAILED");
+    }
+
+    if (!householdData) {
+      throw new Error("HOUSEHOLD_NOT_FOUND");
+    }
+
+    const householdId = householdData.id;
+
+    // Verify budget and category in parallel for better performance
+    const [budgetResult, categoryResult] = await Promise.all([
+      this.supabase.from("budgets").select("id").eq("id", budgetId).eq("household_id", householdId).single(),
+      this.supabase.from("categories").select("id").eq("id", categoryId).eq("household_id", householdId).single(),
+    ]);
+
+    // Check budget verification result
+    const { data: budgetData, error: budgetError } = budgetResult;
+    if (budgetError) {
+      if (budgetError.code === "PGRST116") {
+        throw new Error("BUDGET_NOT_FOUND");
+      }
+      console.error("Database error while fetching budget:", budgetError);
+      throw new Error("TRANSACTION_CREATE_FAILED");
+    }
+
+    if (!budgetData) {
+      throw new Error("BUDGET_NOT_FOUND");
+    }
+
+    // Check category verification result
+    const { data: categoryData, error: categoryError } = categoryResult;
+    if (categoryError) {
+      if (categoryError.code === "PGRST116") {
+        throw new Error("CATEGORY_MISMATCH");
+      }
+      console.error("Database error while validating category:", categoryError);
+      throw new Error("TRANSACTION_CREATE_FAILED");
+    }
+
+    if (!categoryData) {
+      throw new Error("CATEGORY_MISMATCH");
+    }
+
+    // Create the transaction
+    const { data: transactionData, error: insertError } = await this.supabase
+      .from("transactions")
+      .insert({
+        household_id: householdId,
+        budget_id: budgetId,
+        category_id: categoryId,
+        amount: amount,
+        transaction_date: transactionDate,
+        note: note || null,
+      })
+      .select("id, household_id, budget_id, category_id, amount, transaction_date, note, created_at, updated_at")
+      .single();
+
+    if (insertError || !transactionData) {
+      console.error("Database error while creating transaction:", insertError);
+      throw new Error("TRANSACTION_CREATE_FAILED");
+    }
+
+    // Note: Budget summaries are calculated dynamically from the database
+    // No need to update cached aggregates as they are computed on-demand
+    // The new transaction will automatically be included in future summary calculations
+
+    return this.mapTransactionToDto(transactionData);
   }
 
   /**
