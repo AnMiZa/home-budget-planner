@@ -17,6 +17,7 @@ import type {
   UpdateBudgetIncomeCommand,
   UpsertBudgetIncomesCommand,
   PlannedExpensesListResponseDto,
+  UpsertPlannedExpensesCommand,
 } from "../../types";
 
 export type SupabaseClientType = typeof supabaseClient;
@@ -1407,6 +1408,136 @@ export class BudgetsService {
     if (deleteError) {
       console.error("Database error while deleting income:", deleteError);
       throw new Error("INCOME_DELETE_FAILED");
+    }
+  }
+
+  /**
+   * Replaces the complete set of planned expenses for a specific budget.
+   * This method performs a full replacement - removes existing planned expenses
+   * and inserts the provided planned expenses.
+   *
+   * @param userId - The ID of the user whose budget to update
+   * @param budgetId - The ID of the budget to update planned expenses for
+   * @param command - Command containing the new set of planned expenses
+   * @returns Promise resolving to the updated list of budget planned expenses
+   * @throws Error if household not found, budget not found, invalid categories, or database error occurs
+   */
+  async replaceBudgetPlannedExpenses(
+    userId: string,
+    budgetId: string,
+    command: UpsertPlannedExpensesCommand
+  ): Promise<PlannedExpensesListResponseDto> {
+    // First, get the household_id for the user
+    const { data: householdData, error: householdError } = await this.supabase
+      .from("households")
+      .select("id")
+      .eq("user_id", userId)
+      .single();
+
+    if (householdError) {
+      if (householdError.code === "PGRST116") {
+        throw new Error("HOUSEHOLD_NOT_FOUND");
+      }
+      console.error("Database error while fetching household:", householdError);
+      throw new Error("PLANNED_EXPENSES_UPSERT_FAILED");
+    }
+
+    if (!householdData) {
+      throw new Error("HOUSEHOLD_NOT_FOUND");
+    }
+
+    const householdId = householdData.id;
+
+    // Verify that the budget belongs to the user's household
+    const { data: budgetData, error: budgetError } = await this.supabase
+      .from("budgets")
+      .select("id")
+      .eq("id", budgetId)
+      .eq("household_id", householdId)
+      .single();
+
+    if (budgetError) {
+      if (budgetError.code === "PGRST116") {
+        throw new Error("BUDGET_NOT_FOUND");
+      }
+      console.error("Database error while fetching budget:", budgetError);
+      throw new Error("PLANNED_EXPENSES_UPSERT_FAILED");
+    }
+
+    if (!budgetData) {
+      throw new Error("BUDGET_NOT_FOUND");
+    }
+
+    // Validate categories if planned expenses are provided
+    if (command.plannedExpenses.length > 0) {
+      const categoryIds = command.plannedExpenses.map((expense) => expense.categoryId);
+      await this.validateCategories(householdId, categoryIds);
+    }
+
+    try {
+      // Delete existing planned expenses for this budget
+      const { error: deleteError } = await this.supabase
+        .from("planned_expenses")
+        .delete()
+        .eq("budget_id", budgetId);
+
+      if (deleteError) {
+        console.error("Database error while deleting existing planned expenses:", deleteError);
+        throw new Error("PLANNED_EXPENSES_UPSERT_FAILED");
+      }
+
+      // Insert new planned expenses if provided
+      if (command.plannedExpenses.length > 0) {
+        const expensesToInsert = command.plannedExpenses.map((expense) => ({
+          household_id: householdId,
+          budget_id: budgetId,
+          category_id: expense.categoryId,
+          limit_amount: expense.limitAmount,
+        }));
+
+        const { error: insertError } = await this.supabase
+          .from("planned_expenses")
+          .insert(expensesToInsert);
+
+        if (insertError) {
+          console.error("Database error while inserting new planned expenses:", insertError);
+
+          // Handle specific database constraint violations
+          if (insertError.code === "23505") {
+            // Unique constraint violation (duplicate category in same budget)
+            throw new Error("DUPLICATE_CATEGORY");
+          }
+          if (insertError.code === "23514") {
+            // Check constraint violation (invalid limit amount)
+            throw new Error("INVALID_LIMIT");
+          }
+          if (insertError.code === "23503") {
+            // Foreign key constraint violation (invalid category)
+            throw new Error("INVALID_CATEGORY");
+          }
+
+          throw new Error("PLANNED_EXPENSES_UPSERT_FAILED");
+        }
+      }
+
+      // Return the updated list of planned expenses
+      return await this.listBudgetPlannedExpenses(userId, budgetId);
+    } catch (error) {
+      // Re-throw known errors
+      if (
+        error instanceof Error &&
+        [
+          "DUPLICATE_CATEGORY",
+          "INVALID_LIMIT",
+          "INVALID_CATEGORY",
+          "PLANNED_EXPENSES_UPSERT_FAILED",
+        ].includes(error.message)
+      ) {
+        throw error;
+      }
+
+      console.error("Unexpected error during planned expenses replacement:", error);
+      throw new Error("PLANNED_EXPENSES_UPSERT_FAILED");
     }
   }
 
