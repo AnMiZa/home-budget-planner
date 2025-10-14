@@ -1476,10 +1476,7 @@ export class BudgetsService {
 
     try {
       // Delete existing planned expenses for this budget
-      const { error: deleteError } = await this.supabase
-        .from("planned_expenses")
-        .delete()
-        .eq("budget_id", budgetId);
+      const { error: deleteError } = await this.supabase.from("planned_expenses").delete().eq("budget_id", budgetId);
 
       if (deleteError) {
         console.error("Database error while deleting existing planned expenses:", deleteError);
@@ -1495,9 +1492,7 @@ export class BudgetsService {
           limit_amount: expense.limitAmount,
         }));
 
-        const { error: insertError } = await this.supabase
-          .from("planned_expenses")
-          .insert(expensesToInsert);
+        const { error: insertError } = await this.supabase.from("planned_expenses").insert(expensesToInsert);
 
         if (insertError) {
           console.error("Database error while inserting new planned expenses:", insertError);
@@ -1526,12 +1521,9 @@ export class BudgetsService {
       // Re-throw known errors
       if (
         error instanceof Error &&
-        [
-          "DUPLICATE_CATEGORY",
-          "INVALID_LIMIT",
-          "INVALID_CATEGORY",
-          "PLANNED_EXPENSES_UPSERT_FAILED",
-        ].includes(error.message)
+        ["DUPLICATE_CATEGORY", "INVALID_LIMIT", "INVALID_CATEGORY", "PLANNED_EXPENSES_UPSERT_FAILED"].includes(
+          error.message
+        )
       ) {
         throw error;
       }

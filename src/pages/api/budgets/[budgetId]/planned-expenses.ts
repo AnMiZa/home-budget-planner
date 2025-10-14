@@ -23,7 +23,7 @@ const upsertPlannedExpensesSchema = z.object({
           .refine(
             (val) => {
               // Check for maximum 2 decimal places
-              const decimalPlaces = (val.toString().split('.')[1] || '').length;
+              const decimalPlaces = (val.toString().split(".")[1] || "").length;
               return decimalPlaces <= 2;
             },
             {
@@ -91,7 +91,7 @@ async function parseRequestBody(request: Request): Promise<UpsertPlannedExpenses
   const result = upsertPlannedExpensesSchema.safeParse(body);
   if (!result.success) {
     const firstError = result.error.errors[0];
-    
+
     // Check for specific validation errors
     if (firstError?.message === "Duplicate category IDs are not allowed") {
       throw new Error("DUPLICATE_CATEGORY");
@@ -99,7 +99,7 @@ async function parseRequestBody(request: Request): Promise<UpsertPlannedExpenses
     if (firstError?.message?.includes("Limit amount")) {
       throw new Error("INVALID_LIMIT");
     }
-    
+
     throw new Error("INVALID_PAYLOAD");
   }
 
@@ -235,7 +235,7 @@ export const PUT: APIRoute = async ({ params, request, locals }) => {
       command = await parseRequestBody(request);
     } catch (parseError) {
       const errorMessage = parseError instanceof Error ? parseError.message : "Unknown error";
-      
+
       if (errorMessage === "INVALID_JSON") {
         return createErrorResponse("INVALID_PAYLOAD", "Invalid JSON format in request body", 400);
       }
@@ -245,7 +245,7 @@ export const PUT: APIRoute = async ({ params, request, locals }) => {
       if (errorMessage === "INVALID_LIMIT") {
         return createErrorResponse("INVALID_LIMIT", "Invalid limit amount format or value", 400);
       }
-      
+
       console.warn("Request body validation failed:", parseError);
       return createErrorResponse("INVALID_PAYLOAD", "Invalid request body format", 400);
     }
@@ -278,7 +278,9 @@ export const PUT: APIRoute = async ({ params, request, locals }) => {
     try {
       const result = await budgetsService.replaceBudgetPlannedExpenses(user.id, budgetId, command);
 
-      console.log(`Budget planned expenses replaced successfully for user ${user.id}: budget ${budgetId}, ${command.plannedExpenses.length} expenses`);
+      console.log(
+        `Budget planned expenses replaced successfully for user ${user.id}: budget ${budgetId}, ${command.plannedExpenses.length} expenses`
+      );
       return createSuccessResponse(result, "PLANNED_EXPENSES_UPSERTED");
     } catch (serviceError) {
       const errorMessage = serviceError instanceof Error ? serviceError.message : "Unknown error";
