@@ -23,6 +23,7 @@ import type {
   TransactionsListResponseDto,
   CreateTransactionCommand,
   DashboardSummaryDto,
+  BudgetSummaryResponseDto,
 } from "../../types";
 import type { ListTransactionsFilters } from "../validation/transactions";
 import { createPartialMatchPattern } from "../sql";
@@ -2029,13 +2030,13 @@ export class BudgetsService {
    * @param income - The income record from the database
    * @returns Mapped BudgetIncomeDto
    */
-  private mapIncomeToDto(income: any): BudgetIncomeDto {
+  private mapIncomeToDto(income: Record<string, unknown>): BudgetIncomeDto {
     return {
-      id: income.id,
-      householdMemberId: income.household_member_id,
-      amount: income.amount,
-      createdAt: income.created_at,
-      updatedAt: income.updated_at,
+      id: income.id as string,
+      householdMemberId: income.household_member_id as string,
+      amount: income.amount as number,
+      createdAt: income.created_at as string,
+      updatedAt: income.updated_at as string,
     };
   }
 
@@ -2045,14 +2046,125 @@ export class BudgetsService {
    * @param plannedExpense - The planned expense record from the database
    * @returns Mapped BudgetPlannedExpenseDto
    */
-  private mapPlannedExpenseToDto(plannedExpense: any): BudgetPlannedExpenseDto {
+  private mapPlannedExpenseToDto(plannedExpense: Record<string, unknown>): BudgetPlannedExpenseDto {
     return {
-      id: plannedExpense.id,
-      categoryId: plannedExpense.category_id,
-      limitAmount: plannedExpense.limit_amount,
-      createdAt: plannedExpense.created_at,
-      updatedAt: plannedExpense.updated_at,
+      id: plannedExpense.id as string,
+      categoryId: plannedExpense.category_id as string,
+      limitAmount: plannedExpense.limit_amount as number,
+      createdAt: plannedExpense.created_at as string,
+      updatedAt: plannedExpense.updated_at as string,
     };
+  }
+
+  /**
+   * Retrieves a budget summary for a specific budget that belongs to the authenticated user's household.
+   * Provides historical summary data compatible with dashboard current endpoint format.
+   * Optionally includes per-category breakdown based on includeCategories parameter.
+   *
+   * @param userId - The ID of the user whose budget summary to retrieve
+   * @param budgetId - The ID of the budget to get summary for
+   * @param options - Options for including category details
+   * @returns Promise resolving to budget summary response DTO
+   * @throws Error if household not found, budget not found, or database error occurs
+   */
+  async getBudgetSummary(
+    userId: string,
+    budgetId: string,
+    options: { includeCategories?: boolean } = {}
+  ): Promise<BudgetSummaryResponseDto> {
+    const { includeCategories = true } = options;
+
+    // First, get the household_id for the user
+    const { data: householdData, error: householdError } = await this.supabase
+      .from("households")
+      .select("id")
+      .eq("user_id", userId)
+      .single();
+
+    if (householdError) {
+      if (householdError.code === "PGRST116") {
+        throw new Error("BUDGET_NOT_FOUND"); // Hide household existence from API response
+      }
+      console.error("Database error while fetching household:", householdError);
+      throw new Error("BUDGET_SUMMARY_FETCH_FAILED");
+    }
+
+    if (!householdData) {
+      throw new Error("BUDGET_NOT_FOUND");
+    }
+
+    const householdId = householdData.id;
+
+    // Verify that the budget exists and belongs to the user's household
+    const { data: budgetData, error: budgetError } = await this.supabase
+      .from("budgets")
+      .select("id, month")
+      .eq("id", budgetId)
+      .eq("household_id", householdId)
+      .single();
+
+    if (budgetError) {
+      if (budgetError.code === "PGRST116") {
+        throw new Error("BUDGET_NOT_FOUND");
+      }
+      console.error("Database error while fetching budget:", budgetError);
+      throw new Error("BUDGET_SUMMARY_FETCH_FAILED");
+    }
+
+    if (!budgetData) {
+      throw new Error("BUDGET_NOT_FOUND");
+    }
+
+    try {
+      // Fetch all related data in parallel
+      const [incomesData, plannedExpensesData, transactionsData] = await Promise.all([
+        this.getBudgetIncomes(budgetId, householdId, false), // Only active members
+        this.getBudgetPlannedExpenses(budgetId, householdId),
+        this.getBudgetTransactions(budgetId, householdId),
+      ]);
+
+      // Calculate summary totals
+      const totalIncome = incomesData.reduce((sum, income) => sum + income.amount, 0);
+      const totalPlanned = plannedExpensesData.reduce((sum, expense) => sum + expense.limitAmount, 0);
+      const totalSpent = transactionsData.reduce((sum, transaction) => sum + transaction.amount, 0);
+      const freeFunds = totalIncome - totalPlanned;
+
+      // Progress as ratio (0-1), not percentage
+      const progress = totalIncome > 0 ? totalSpent / totalIncome : 0;
+
+      // Build summary object
+      let summary: BudgetSummaryDto = {
+        totalIncome,
+        totalPlanned,
+        totalSpent,
+        freeFunds,
+        progress,
+      };
+
+      // Add per-category summaries if requested
+      if (includeCategories) {
+        const perCategory = await this.calculateCategorySummaries(plannedExpensesData, transactionsData, householdId);
+        summary = {
+          ...summary,
+          perCategory,
+        };
+      } else {
+        // Return empty array when categories are explicitly excluded
+        summary = {
+          ...summary,
+          perCategory: [],
+        };
+      }
+
+      return {
+        budgetId: budgetData.id,
+        month: budgetData.month,
+        summary,
+      };
+    } catch (error) {
+      console.error(`Error fetching budget summary data for user ${userId}, budget ${budgetId}:`, error);
+      throw new Error("BUDGET_SUMMARY_FETCH_FAILED");
+    }
   }
 
   /**
@@ -2061,17 +2173,17 @@ export class BudgetsService {
    * @param transaction - The transaction record from the database
    * @returns Mapped TransactionDto
    */
-  private mapTransactionToDto(transaction: any): TransactionDto {
+  private mapTransactionToDto(transaction: Record<string, unknown>): TransactionDto {
     return {
-      id: transaction.id,
-      householdId: transaction.household_id,
-      budgetId: transaction.budget_id,
-      categoryId: transaction.category_id,
+      id: transaction.id as string,
+      householdId: transaction.household_id as string,
+      budgetId: transaction.budget_id as string,
+      categoryId: transaction.category_id as string,
       amount: Number(transaction.amount),
-      transactionDate: transaction.transaction_date,
-      note: transaction.note,
-      createdAt: transaction.created_at,
-      updatedAt: transaction.updated_at,
+      transactionDate: transaction.transaction_date as string,
+      note: transaction.note as string | null,
+      createdAt: transaction.created_at as string,
+      updatedAt: transaction.updated_at as string,
     };
   }
 }
