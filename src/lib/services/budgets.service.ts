@@ -18,6 +18,7 @@ import type {
   UpsertBudgetIncomesCommand,
   PlannedExpensesListResponseDto,
   UpsertPlannedExpensesCommand,
+  UpdatePlannedExpenseCommand,
 } from "../../types";
 
 export type SupabaseClientType = typeof supabaseClient;
@@ -1534,6 +1535,98 @@ export class BudgetsService {
   }
 
   /**
+   * Updates the limit amount of a specific planned expense in a budget.
+   *
+   * @param userId - The ID of the user making the request
+   * @param budgetId - The ID of the budget containing the planned expense
+   * @param plannedExpenseId - The ID of the planned expense to update
+   * @param command - The update command containing the new limit amount
+   * @returns Promise resolving to the updated planned expense DTO
+   * @throws Error if household, budget, or planned expense not found, or if update fails
+   */
+  async updateBudgetPlannedExpense(
+    userId: string,
+    budgetId: string,
+    plannedExpenseId: string,
+    command: UpdatePlannedExpenseCommand
+  ): Promise<BudgetPlannedExpenseDto> {
+    // First, get the household_id for the user
+    const { data: householdData, error: householdError } = await this.supabase
+      .from("households")
+      .select("id")
+      .eq("user_id", userId)
+      .single();
+
+    if (householdError) {
+      if (householdError.code === "PGRST116") {
+        throw new Error("HOUSEHOLD_NOT_FOUND");
+      }
+      console.error("Database error while fetching household:", householdError);
+      throw new Error("PLANNED_EXPENSE_UPDATE_FAILED");
+    }
+
+    if (!householdData) {
+      throw new Error("HOUSEHOLD_NOT_FOUND");
+    }
+
+    const householdId = householdData.id;
+
+    // Verify that the budget exists and belongs to the user's household
+    const { data: budgetData, error: budgetError } = await this.supabase
+      .from("budgets")
+      .select("id")
+      .eq("id", budgetId)
+      .eq("household_id", householdId)
+      .single();
+
+    if (budgetError) {
+      if (budgetError.code === "PGRST116") {
+        throw new Error("BUDGET_NOT_FOUND");
+      }
+      console.error("Database error while fetching budget:", budgetError);
+      throw new Error("PLANNED_EXPENSE_UPDATE_FAILED");
+    }
+
+    if (!budgetData) {
+      throw new Error("BUDGET_NOT_FOUND");
+    }
+
+    // Update the planned expense record
+    const { data: updatedPlannedExpense, error: updateError } = await this.supabase
+      .from("planned_expenses")
+      .update({
+        limit_amount: command.limitAmount,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", plannedExpenseId)
+      .eq("budget_id", budgetId)
+      .eq("household_id", householdId)
+      .select("id, category_id, limit_amount, created_at, updated_at")
+      .single();
+
+    if (updateError) {
+      if (updateError.code === "PGRST116") {
+        throw new Error("PLANNED_EXPENSE_NOT_FOUND");
+      }
+
+      // Handle constraint violations (e.g., CHECK constraints)
+      if (updateError.code === "23514" || updateError.message?.includes("CHECK")) {
+        throw new Error("INVALID_PAYLOAD");
+      }
+
+      console.error("Database error while updating planned expense:", updateError);
+      throw new Error("PLANNED_EXPENSE_UPDATE_FAILED");
+    }
+
+    if (!updatedPlannedExpense) {
+      throw new Error("PLANNED_EXPENSE_NOT_FOUND");
+    }
+
+    // Map the database result to DTO
+    return this.mapPlannedExpenseToDto(updatedPlannedExpense);
+  }
+
+  /**
    * Maps a database income record to BudgetIncomeDto.
    *
    * @param income - The income record from the database
@@ -1546,6 +1639,22 @@ export class BudgetsService {
       amount: income.amount,
       createdAt: income.created_at,
       updatedAt: income.updated_at,
+    };
+  }
+
+  /**
+   * Maps a database planned expense record to BudgetPlannedExpenseDto.
+   *
+   * @param plannedExpense - The planned expense record from the database
+   * @returns Mapped BudgetPlannedExpenseDto
+   */
+  private mapPlannedExpenseToDto(plannedExpense: any): BudgetPlannedExpenseDto {
+    return {
+      id: plannedExpense.id,
+      categoryId: plannedExpense.category_id,
+      limitAmount: plannedExpense.limit_amount,
+      createdAt: plannedExpense.created_at,
+      updatedAt: plannedExpense.updated_at,
     };
   }
 }
