@@ -141,6 +141,36 @@ export interface ListTransactionsFilters {
 }
 
 /**
+ * Validation schema for transaction ID path parameter.
+ */
+export const transactionIdParamSchema = z.object({
+  transactionId: z.string().uuid("Transaction ID must be a valid UUID"),
+});
+
+/**
+ * Type for validated transaction ID parameter.
+ */
+export type TransactionIdParams = z.infer<typeof transactionIdParamSchema>;
+
+/**
+ * Parses and validates transaction ID from path parameters.
+ *
+ * @param params - Path parameters containing transactionId
+ * @returns Validated transaction ID
+ * @throws Error with validation details if transactionId is invalid
+ */
+export function parseTransactionIdParam(params: { transactionId: string }): string {
+  const result = transactionIdParamSchema.safeParse(params);
+
+  if (!result.success) {
+    const firstError = result.error.errors[0];
+    throw new Error(`INVALID_TRANSACTION_ID: ${firstError.message}`);
+  }
+
+  return result.data.transactionId;
+}
+
+/**
  * Parses and validates transactions query parameters from URL search params.
  *
  * @param params - Path parameters containing budgetId
