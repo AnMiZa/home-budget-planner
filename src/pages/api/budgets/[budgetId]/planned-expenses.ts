@@ -103,7 +103,7 @@ async function parseRequestBody(request: Request): Promise<UpsertPlannedExpenses
   let body;
   try {
     body = await request.json();
-  } catch (error) {
+  } catch {
     throw new Error("INVALID_JSON");
   }
 
