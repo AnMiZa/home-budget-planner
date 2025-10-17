@@ -16,8 +16,6 @@ export interface OverallSummaryCardProps {
 export const OverallSummaryCard = ({ data }: OverallSummaryCardProps) => {
   const { totalSpent, totalIncome, freeFunds, progressPercentage } = data;
 
-  console.log(data);
-
   return (
     <Card className="w-full">
       <CardHeader>
@@ -30,7 +28,8 @@ export const OverallSummaryCard = ({ data }: OverallSummaryCardProps) => {
             <span className="font-medium text-foreground"> {formatCurrency(totalIncome)}</span> przychodów.
           </p>
           <p>
-            Dostępne środki: <span className="font-semibold text-foreground">{formatCurrency(freeFunds)}</span>
+            Kwota pozostała do zaplanowania:{" "}
+            <span className="font-semibold text-foreground">{formatCurrency(freeFunds)}</span>
           </p>
         </div>
         <div className="space-y-2">
