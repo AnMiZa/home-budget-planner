@@ -1,0 +1,8 @@
+---
+import Layout from "@/layouts/Layout.astro";
+import { BudgetWizardView } from "@/components/budget-wizard/BudgetWizardView";
+---
+
+<Layout title="Nowy budżet">
+  <BudgetWizardView client:only="react" />
+</Layout>

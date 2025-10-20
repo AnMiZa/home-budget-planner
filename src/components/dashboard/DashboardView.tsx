@@ -14,8 +14,12 @@ export const DashboardView = () => {
   const { data, isLoading, error, refetch } = useDashboard();
 
   const handleCreateBudget = useCallback(() => {
-    window.location.href = "/budgets/new";
+    window.location.href = "/new-budget";
   }, []);
+
+  const handleEditBudget = useCallback(() => {
+    window.location.href = `/budget/${data?.currentBudgetId}/edit`;
+  }, [data]);
 
   const categories = useMemo<readonly CategoryProgressViewModel[]>(() => {
     if (!data) {
@@ -78,9 +82,14 @@ export const DashboardView = () => {
   return (
     <div className="flex flex-col gap-8">
       <section className="space-y-4">
-        <header className="space-y-1">
-          <h1 className="text-3xl font-semibold tracking-tight">Twój budżet</h1>
-          <p className="text-sm text-muted-foreground">Podsumowanie miesiąca {formatMonth(data.month)}</p>
+        <header className="space-y-1 flex items-center justify-between">
+          <div>
+            <h1 className="text-3xl font-semibold tracking-tight">Twój budżet</h1>
+            <p className="text-sm text-muted-foreground">Podsumowanie miesiąca {formatMonth(data.month)}</p>
+          </div>
+          <Button variant="outline" onClick={handleEditBudget}>
+            Edytuj budżet
+          </Button>
         </header>
         <OverallSummaryCard data={summary} />
       </section>

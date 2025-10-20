@@ -25,10 +25,9 @@ export const MainLayout = ({ children }: MainLayoutProps) => {
 
   return (
     <UIContextProvider>
-      <div className="flex min-h-dvh bg-background text-foreground">
+      <div className="flex h-dvh overflow-hidden bg-background text-foreground">
         <MainNavigation />
-
-        <main className={`flex-1 px-4 pb-10 pt-6 transition-all ${mainPaddingClasses}`}>
+        <main className={`flex-1 overflow-y-auto px-4 pb-10 pt-6 transition-all ${mainPaddingClasses}`}>
           <div className="mx-auto w-full max-w-5xl space-y-8">{children}</div>
         </main>
       </div>

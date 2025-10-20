@@ -123,6 +123,7 @@ export const GET: APIRoute = async ({ request, locals }) => {
     //   error: authError,
     // } = await supabase.auth.getUser();
 
+    //TODO: remove after development
     const {
       data: { user },
       error: authError,

@@ -22,19 +22,15 @@ export const NavigationItem = ({
   onNavigate,
   orientation = "vertical",
 }: NavigationItemProps) => {
-  const [pathname, setPathname] = useState<string>(() => {
-    if (typeof window === "undefined") {
-      return href;
-    }
-
-    return window.location.pathname;
-  });
+  const [isClient, setIsClient] = useState(false);
+  const [pathname, setPathname] = useState<string>(href);
 
   useEffect(() => {
     if (typeof window === "undefined") {
       return undefined;
     }
 
+    setIsClient(true);
     const updatePathname = () => {
       setPathname(window.location.pathname);
     };
@@ -46,14 +42,16 @@ export const NavigationItem = ({
       document.removeEventListener(ASTRO_NAVIGATION_EVENT, updatePathname as EventListener);
       window.removeEventListener("popstate", updatePathname);
     };
-  }, []);
+  }, [isClient]);
 
   const isActive = useMemo(() => pathname === href, [pathname, href]);
 
   const handleClick = useCallback(() => {
-    setPathname(href);
+    if (isClient && typeof window !== "undefined") {
+      setPathname(window.location.pathname);
+    }
     onNavigate?.();
-  }, [href, onNavigate]);
+  }, [isClient, onNavigate]);
 
   const baseClasses = useMemo(() => {
     const shared =

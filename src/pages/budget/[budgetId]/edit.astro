@@ -1,0 +1,15 @@
+---
+import { AstroError } from "astro/errors";
+import Layout from "@/layouts/Layout.astro";
+import { BudgetWizardView } from "@/components/budget-wizard/BudgetWizardView";
+
+const { budgetId } = Astro.params;
+
+if (!budgetId) {
+  throw new AstroError("ID budżetu jest wymagane do edycji.");
+}
+---
+
+<Layout title="Edycja budżetu">
+  <BudgetWizardView client:only="react" budgetId={budgetId} />
+</Layout>
