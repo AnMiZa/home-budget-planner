@@ -661,6 +661,12 @@ function createBudgetWizardApi(deps: UseBudgetWizardDependencies) {
 }
 
 async function normalizeApiError(response: Response, fallbackMessage: string): Promise<Error> {
+  // Redirect to login on 401 error
+  if (response.status === 401) {
+    window.location.href = "/login";
+    return new Error("Twoja sesja wygasła. Zaloguj się ponownie.");
+  }
+
   try {
     const text = await response.text();
     if (!text) {

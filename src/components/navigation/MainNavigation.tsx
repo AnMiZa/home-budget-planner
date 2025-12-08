@@ -1,10 +1,20 @@
 import { Sidebar } from "@/components/navigation/Sidebar";
 import { TabBar } from "@/components/navigation/TabBar";
 
-export const MainNavigation = () => {
+interface User {
+  id: string;
+  email: string;
+  household_id: string;
+}
+
+interface MainNavigationProps {
+  readonly user?: User;
+}
+
+export const MainNavigation = ({ user }: MainNavigationProps) => {
   return (
     <>
-      <Sidebar />
+      <Sidebar user={user} />
       <TabBar />
     </>
   );

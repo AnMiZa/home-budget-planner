@@ -1,0 +1,10 @@
+---
+import AuthLayout from "@/layouts/AuthLayout.astro";
+import { LoginForm } from "@/components/auth/LoginForm";
+
+export const prerender = false;
+---
+
+<AuthLayout title="Zaloguj się — Home Budget Planner" description="Uzyskaj dostęp do panelu budżetu domowego.">
+  <LoginForm client:load />
+</AuthLayout>

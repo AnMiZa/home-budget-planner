@@ -7,6 +7,9 @@ interface Props {
 }
 
 const { title = "Home Budget Planner" } = Astro.props;
+
+// Get user data from locals (set by middleware)
+const user = Astro.locals.user;
 ---
 
 <!doctype html>
@@ -19,7 +22,7 @@ const { title = "Home Budget Planner" } = Astro.props;
     <title>{title}</title>
   </head>
   <body class="min-h-dvh bg-background text-foreground">
-    <MainLayout client:load>
+    <MainLayout client:load user={user}>
       <slot />
     </MainLayout>
   </body>

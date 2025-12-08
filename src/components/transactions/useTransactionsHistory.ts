@@ -555,6 +555,13 @@ export const useTransactionsHistory = ({
     [categoriesIndex, mapTransactionDtoToVM, state.transactions]
   );
 
+  // Redirect to login on 401 error
+  useEffect(() => {
+    if (state.error?.status === 401 || state.loadMoreError?.status === 401) {
+      window.location.href = "/login";
+    }
+  }, [state.error, state.loadMoreError]);
+
   return {
     transactions,
     categories: state.categories,

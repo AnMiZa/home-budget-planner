@@ -80,6 +80,13 @@ export const useDashboard = (): DashboardState => {
     };
   }, [fetchDashboard]);
 
+  // Redirect to login on 401 error
+  useEffect(() => {
+    if (error?.status === 401) {
+      window.location.href = "/login";
+    }
+  }, [error]);
+
   return {
     data,
     isLoading,

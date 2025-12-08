@@ -1,0 +1,13 @@
+---
+import AuthLayout from "@/layouts/AuthLayout.astro";
+import { RegisterForm } from "@/components/auth/RegisterForm";
+
+export const prerender = false;
+---
+
+<AuthLayout
+  title="Załóż konto — Home Budget Planner"
+  description="Stwórz konto i rozpocznij planowanie budżetu domowego."
+>
+  <RegisterForm client:load />
+</AuthLayout>
