@@ -77,9 +77,10 @@ export const LoginForm = () => {
               Zarejestruj się
             </a>
           </p>
-          <a href="/reset-password" className="font-medium text-primary hover:text-primary/80">
+          {/* TODO: Add reset password link */}
+          {/* <a href="/reset-password" className="font-medium text-primary hover:text-primary/80">
             Nie pamiętasz hasła?
-          </a>
+          </a> */}
         </>
       }
     >
@@ -110,12 +111,7 @@ export const LoginForm = () => {
           <FormItem>
             <FormLabel>Hasło</FormLabel>
             <FormControl>
-              <Input
-                {...field}
-                type="password"
-                autoComplete="current-password"
-                placeholder="********"
-              />
+              <Input {...field} type="password" autoComplete="current-password" placeholder="********" />
             </FormControl>
             <FormMessage />
           </FormItem>
@@ -146,4 +142,3 @@ export const LoginForm = () => {
     </AuthForm>
   );
 };
-
