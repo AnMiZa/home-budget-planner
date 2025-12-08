@@ -45,15 +45,33 @@ export const RegisterForm = () => {
       setSuccessMessage(null);
 
       try {
-        // TODO: Zastąpić atrapę wywołaniem endpointu /api/auth/register po implementacji backendu.
-        await new Promise((resolve) => setTimeout(resolve, 700));
-        setSuccessMessage("Rejestracja będzie dostępna po połączeniu z backendem.");
-        form.reset({ ...values, password: "", confirmPassword: "" });
+        const response = await fetch("/api/auth/register", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            email: values.email,
+            password: values.password,
+            confirmPassword: values.confirmPassword,
+          }),
+        });
+
+        const data = await response.json();
+
+        if (!response.ok) {
+          setGlobalError(data.error || "Nie udało się utworzyć konta.");
+          return;
+        }
+
+        // Successful registration - redirect to home page
+        window.location.href = "/";
       } catch (error) {
-        setGlobalError("Nie udało się wysłać formularza. Spróbuj ponownie.");
+        console.error("Registration error:", error);
+        setGlobalError("Nie udało się połączyć z serwerem. Spróbuj ponownie.");
       }
     },
-    [form]
+    []
   );
 
   return (
