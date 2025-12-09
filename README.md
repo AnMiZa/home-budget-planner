@@ -35,7 +35,9 @@ Home Budget Planner is a web application designed with a “mobile-first” appr
 | Styling | ![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-06B6D4?logo=tailwindcss&logoColor=white)        |
 | UI      | ![Shadcn/ui](https://img.shields.io/badge/shadcn/ui-000000?logo=shadcnui&logoColor=white)                 |
 | Schema  | ![Zod](https://img.shields.io/badge/Zod-3E67B1?logo=zod&logoColor=white)                                  |
+| Testing | ![Vitest](https://img.shields.io/badge/Vitest-6E9F18?logo=vitest&logoColor=white)                         |
 | E2E     | ![Playwright](https://img.shields.io/badge/Playwright-2EAD33?logo=playwright&logoColor=white)             |
+| UI Test | ![React Testing Library](https://img.shields.io/badge/Testing_Library-E33332?logo=testinglibrary&logoColor=white) |
 | Linting | ![ESLint](https://img.shields.io/badge/ESLint-4B32C3?logo=eslint&logoColor=white)                         |
 | Format  | ![Prettier](https://img.shields.io/badge/Prettier-F7B93E?logo=prettier&logoColor=black)                   |
 
@@ -74,13 +76,16 @@ To get started with this project locally, follow these steps:
 
 In the project directory, you can run the following scripts:
 
-| Script            | Description                          |
-| ----------------- | ------------------------------------ |
-| `npm run dev`     | Runs the app in development mode.    |
-| `npm run build`   | Builds the app for production.       |
-| `npm run preview` | Serves the production build locally. |
-| `npm run lint`    | Lints the code using ESLint.         |
-| `npm run format`  | Formats the code with Prettier.      |
+| Script                  | Description                             |
+| ----------------------- | --------------------------------------- |
+| `npm run dev`           | Runs the app in development mode.       |
+| `npm run build`         | Builds the app for production.          |
+| `npm run preview`       | Serves the production build locally.    |
+| `npm run lint`          | Lints the code using ESLint.            |
+| `npm run format`        | Formats the code with Prettier.         |
+| `npm run test:unit`     | Runs unit tests with Vitest.            |
+| `npm run test:e2e`      | Runs E2E tests with Playwright.         |
+| `npm run test:coverage` | Generates test coverage report.         |
 
 ## Project scope
 
@@ -116,6 +121,29 @@ In the project directory, you can run the following scripts:
 - No advanced sorting and filtering on the transaction history list.
 - No dedicated onboarding tutorial for new users.
 - No support for adding negative transactions (refunds).
+
+## Testing Strategy
+
+The project implements a comprehensive testing approach:
+
+### Unit & Integration Tests
+- **Framework**: Vitest
+- **Component Testing**: React Testing Library
+- **Coverage Target**: >80% for business logic
+- **Scope**: Validation schemas, services, utilities, custom hooks, API endpoints
+
+### End-to-End Tests
+- **Framework**: Playwright
+- **Scope**: Complete user journeys, multi-step workflows, responsive design
+- **Devices**: Mobile (Pixel 5, iPhone 13) and Desktop (Chrome)
+- **Target**: All user stories from PRD
+
+### Continuous Integration
+- Tests run automatically on every pull request via GitHub Actions
+- Coverage reports and performance audits included in CI pipeline
+- Regression test suite for critical flows
+
+For detailed testing documentation, see `.ai/plan-testow.md`.
 
 ## Project status
 
