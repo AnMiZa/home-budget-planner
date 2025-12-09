@@ -1,0 +1,89 @@
+import { defineConfig, devices } from "@playwright/test";
+
+/**
+ * Playwright E2E Testing Configuration
+ *
+ * This configuration follows best practices:
+ * - Chromium only (as per project requirements)
+ * - Browser contexts for test isolation
+ * - Trace on first retry for debugging
+ * - Screenshot on failure
+ * - Base URL configuration
+ * - Separate test environments
+ */
+
+export default defineConfig({
+  // Test directory
+  testDir: "./e2e",
+
+  // Maximum time one test can run for
+  timeout: 30 * 1000,
+
+  // Run tests in files in parallel
+  fullyParallel: true,
+
+  // Fail the build on CI if you accidentally left test.only in the source code
+  forbidOnly: !!process.env.CI,
+
+  // Retry on CI only
+  retries: process.env.CI ? 2 : 0,
+
+  // Opt out of parallel tests on CI
+  workers: process.env.CI ? 1 : undefined,
+
+  // Reporter to use
+  reporter: [
+    ["html", { outputFolder: "playwright-report" }],
+    ["list"],
+    ["junit", { outputFile: "test-results/junit.xml" }],
+  ],
+
+  // Shared settings for all the projects below
+  use: {
+    // Base URL to use in actions like `await page.goto('/')`
+    baseURL: process.env.BASE_URL || "http://localhost:4321",
+
+    // Collect trace when retrying the failed test
+    trace: "on-first-retry",
+
+    // Screenshot on failure
+    screenshot: "only-on-failure",
+
+    // Video on failure
+    video: "retain-on-failure",
+
+    // Browser context options
+    contextOptions: {
+      // Ignore HTTPS errors (useful for local testing)
+      ignoreHTTPSErrors: true,
+    },
+  },
+
+  // Configure projects for major browsers
+  // Only Chromium as per project requirements
+  projects: [
+    {
+      name: "chromium",
+      use: {
+        ...devices["Desktop Chrome"],
+        viewport: { width: 1280, height: 720 },
+      },
+    },
+
+    // Mobile testing - critical for mobile-first app
+    {
+      name: "mobile-chrome",
+      use: {
+        ...devices["Pixel 5"],
+      },
+    },
+  ],
+
+  // Run your local dev server before starting the tests
+  webServer: {
+    command: "npm run dev",
+    url: "http://localhost:4321",
+    reuseExistingServer: !process.env.CI,
+    timeout: 120 * 1000,
+  },
+});

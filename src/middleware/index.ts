@@ -34,11 +34,7 @@ export const onRequest = defineMiddleware(async ({ locals, cookies, url, request
 
   if (user) {
     // User is authenticated - fetch household_id
-    const { data: household } = await supabase
-      .from("households")
-      .select("id")
-      .eq("user_id", user.id)
-      .single();
+    const { data: household } = await supabase.from("households").select("id").eq("user_id", user.id).single();
 
     if (household) {
       locals.user = {

@@ -76,12 +76,7 @@ export const UpdatePasswordForm = () => {
           <FormItem>
             <FormLabel>Nowe hasło</FormLabel>
             <FormControl>
-              <Input
-                {...field}
-                type="password"
-                autoComplete="new-password"
-                placeholder="********"
-              />
+              <Input {...field} type="password" autoComplete="new-password" placeholder="********" />
             </FormControl>
             <FormMessage />
           </FormItem>
@@ -95,12 +90,7 @@ export const UpdatePasswordForm = () => {
           <FormItem>
             <FormLabel>Powtórz nowe hasło</FormLabel>
             <FormControl>
-              <Input
-                {...field}
-                type="password"
-                autoComplete="new-password"
-                placeholder="********"
-              />
+              <Input {...field} type="password" autoComplete="new-password" placeholder="********" />
             </FormControl>
             <FormMessage />
           </FormItem>
@@ -109,4 +99,3 @@ export const UpdatePasswordForm = () => {
     </AuthForm>
   );
 };
-

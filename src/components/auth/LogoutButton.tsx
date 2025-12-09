@@ -69,4 +69,3 @@ export const LogoutButton = ({ className, onLoggedOut }: LogoutButtonProps) => {
     </div>
   );
 };
-

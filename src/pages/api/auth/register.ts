@@ -56,7 +56,7 @@ export const POST: APIRoute = async ({ request, cookies }) => {
     if (error) {
       // Handle specific Supabase errors
       let errorMessage = "Wystąpił błąd podczas rejestracji.";
-      
+
       if (error.message.includes("User already registered")) {
         errorMessage = "Użytkownik z tym adresem e-mail już istnieje.";
       } else if (error.message.includes("Password")) {
@@ -120,4 +120,3 @@ export const POST: APIRoute = async ({ request, cookies }) => {
     );
   }
 };
-

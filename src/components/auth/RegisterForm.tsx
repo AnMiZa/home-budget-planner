@@ -39,40 +39,37 @@ export const RegisterForm = () => {
     },
   });
 
-  const handleSubmit = useCallback(
-    async (values: RegisterFormValues) => {
-      setGlobalError(null);
-      setSuccessMessage(null);
+  const handleSubmit = useCallback(async (values: RegisterFormValues) => {
+    setGlobalError(null);
+    setSuccessMessage(null);
 
-      try {
-        const response = await fetch("/api/auth/register", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            email: values.email,
-            password: values.password,
-            confirmPassword: values.confirmPassword,
-          }),
-        });
+    try {
+      const response = await fetch("/api/auth/register", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          email: values.email,
+          password: values.password,
+          confirmPassword: values.confirmPassword,
+        }),
+      });
 
-        const data = await response.json();
+      const data = await response.json();
 
-        if (!response.ok) {
-          setGlobalError(data.error || "Nie udało się utworzyć konta.");
-          return;
-        }
-
-        // Successful registration - redirect to home page
-        window.location.href = "/";
-      } catch (error) {
-        console.error("Registration error:", error);
-        setGlobalError("Nie udało się połączyć z serwerem. Spróbuj ponownie.");
+      if (!response.ok) {
+        setGlobalError(data.error || "Nie udało się utworzyć konta.");
+        return;
       }
-    },
-    []
-  );
+
+      // Successful registration - redirect to home page
+      window.location.href = "/";
+    } catch (error) {
+      console.error("Registration error:", error);
+      setGlobalError("Nie udało się połączyć z serwerem. Spróbuj ponownie.");
+    }
+  }, []);
 
   return (
     <AuthForm<RegisterFormValues>
@@ -119,12 +116,7 @@ export const RegisterForm = () => {
           <FormItem>
             <FormLabel>Hasło</FormLabel>
             <FormControl>
-              <Input
-                {...field}
-                type="password"
-                autoComplete="new-password"
-                placeholder="********"
-              />
+              <Input {...field} type="password" autoComplete="new-password" placeholder="********" />
             </FormControl>
             <FormMessage />
           </FormItem>
@@ -138,12 +130,7 @@ export const RegisterForm = () => {
           <FormItem>
             <FormLabel>Powtórz hasło</FormLabel>
             <FormControl>
-              <Input
-                {...field}
-                type="password"
-                autoComplete="new-password"
-                placeholder="********"
-              />
+              <Input {...field} type="password" autoComplete="new-password" placeholder="********" />
             </FormControl>
             <FormMessage />
           </FormItem>
@@ -152,4 +139,3 @@ export const RegisterForm = () => {
     </AuthForm>
   );
 };
-
