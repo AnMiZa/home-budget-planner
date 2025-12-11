@@ -1,0 +1,10 @@
+---
+import Layout from "@/layouts/Layout.astro";
+import { ManageHouseholdMembersView } from "@/components/settings/ManageHouseholdMembersView";
+
+export const prerender = false;
+---
+
+<Layout title="Zarządzanie domownikami - Home Budget Planner">
+  <ManageHouseholdMembersView client:load />
+</Layout>

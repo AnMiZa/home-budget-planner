@@ -1,0 +1,10 @@
+---
+import Layout from "@/layouts/Layout.astro";
+import { ManageCategoriesView } from "@/components/settings/ManageCategoriesView";
+
+export const prerender = false;
+---
+
+<Layout title="Zarządzanie kategoriami - Home Budget Planner">
+  <ManageCategoriesView client:load />
+</Layout>

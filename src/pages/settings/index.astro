@@ -1,0 +1,10 @@
+---
+import Layout from "@/layouts/Layout.astro";
+import { SettingsView } from "@/components/settings/SettingsView";
+
+export const prerender = false;
+---
+
+<Layout title="Ustawienia - Home Budget Planner">
+  <SettingsView client:load />
+</Layout>
