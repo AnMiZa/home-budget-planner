@@ -14,12 +14,13 @@
     "test:watch": "vitest watch",
     "test:ui": "vitest --ui",
     "test:coverage": "vitest run --coverage",
-    "test:e2e": "playwright test",
-    "test:e2e:ui": "playwright test --ui",
-    "test:e2e:headed": "playwright test --headed",
-    "test:e2e:debug": "playwright test --debug",
-    "test:e2e:report": "playwright show-report",
-    "test:all": "npm run test && npm run test:e2e"
+    "test:e2e": "playwright test --mode test",
+    "test:e2e:ui": "playwright test --ui --mode test",
+    "test:e2e:headed": "playwright test --headed --mode test",
+    "test:e2e:debug": "playwright test --debug --mode test",
+    "test:e2e:report": "playwright show-report --mode test",
+    "test:all": "npm run test && npm run test:e2e",
+    "dev:e2e": "astro dev --mode test"
   },
   "dependencies": {
     "@astrojs/node": "^9.5.0",

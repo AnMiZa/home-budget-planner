@@ -1,4 +1,4 @@
-import { useCallback, useMemo } from "react";
+import { useCallback, useEffect, useMemo } from "react";
 
 import { CategoryProgressCard } from "@/components/dashboard/CategoryProgressCard";
 import type { CategoryProgressViewModel } from "@/components/dashboard/CategoryProgressCard";
@@ -12,6 +12,21 @@ import { useDashboard } from "@/lib/hooks/useDashboard";
 
 export const DashboardView = () => {
   const { data, isLoading, error, refetch } = useDashboard();
+
+  /**
+   * Listen for expense-added event and refresh dashboard
+   */
+  useEffect(() => {
+    const handleExpenseAdded = () => {
+      void refetch();
+    };
+
+    window.addEventListener("homebudget:expense-added", handleExpenseAdded);
+
+    return () => {
+      window.removeEventListener("homebudget:expense-added", handleExpenseAdded);
+    };
+  }, [refetch]);
 
   const handleCreateBudget = useCallback(() => {
     window.location.href = "/new-budget";

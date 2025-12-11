@@ -2,6 +2,7 @@ import type { ReactNode } from "react";
 import { useMemo } from "react";
 
 import { UIContextProvider } from "@/components/layout/UIContext";
+import { useToast } from "@/components/ui/toast";
 import { useMediaQuery } from "@/lib/hooks/useMediaQuery";
 import { MainNavigation } from "../navigation/MainNavigation";
 import { AddExpenseSheet } from "../navigation/overlays/AddExpenseSheet";
@@ -21,6 +22,7 @@ const DESKTOP_BREAKPOINT = "(min-width: 1024px)";
 
 export const MainLayout = ({ children, user }: MainLayoutProps) => {
   const isDesktop = useMediaQuery(DESKTOP_BREAKPOINT);
+  const { ToastPortal } = useToast();
 
   const mainPaddingClasses = useMemo(() => {
     if (isDesktop) {
@@ -40,6 +42,7 @@ export const MainLayout = ({ children, user }: MainLayoutProps) => {
       </div>
 
       <AddExpenseSheet />
+      <ToastPortal />
     </UIContextProvider>
   );
 };

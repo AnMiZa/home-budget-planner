@@ -50,19 +50,11 @@ function TestAuthFormWrapper({
     >
       <div>
         <label htmlFor="email">Email</label>
-        <input
-          id="email"
-          {...form.register("email")}
-          type="email"
-        />
+        <input id="email" {...form.register("email")} type="email" />
       </div>
       <div>
         <label htmlFor="password">Password</label>
-        <input
-          id="password"
-          {...form.register("password")}
-          type="password"
-        />
+        <input id="password" {...form.register("password")} type="password" />
       </div>
     </AuthForm>
   );
@@ -80,9 +72,7 @@ describe("AuthForm", () => {
     it("renderuje opis gdy przekazany", () => {
       const mockSubmit = vi.fn();
       const description = "To jest opis testowego formularza";
-      renderWithProviders(
-        <TestAuthFormWrapper onSubmit={mockSubmit} description={description} />
-      );
+      renderWithProviders(<TestAuthFormWrapper onSubmit={mockSubmit} description={description} />);
 
       expect(screen.getByText(description)).toBeInTheDocument();
     });
@@ -156,9 +146,7 @@ describe("AuthForm", () => {
     it("pokazuje MessageBanner dla globalError", () => {
       const mockSubmit = vi.fn();
       const errorMessage = "Nieprawidłowy login lub hasło";
-      renderWithProviders(
-        <TestAuthFormWrapper onSubmit={mockSubmit} globalError={errorMessage} />
-      );
+      renderWithProviders(<TestAuthFormWrapper onSubmit={mockSubmit} globalError={errorMessage} />);
 
       expect(screen.getByRole("alert")).toBeInTheDocument();
       expect(screen.getByText(errorMessage)).toBeInTheDocument();
@@ -167,9 +155,7 @@ describe("AuthForm", () => {
     it("pokazuje MessageBanner dla successMessage", () => {
       const mockSubmit = vi.fn();
       const successMessage = "Konto zostało utworzone pomyślnie";
-      renderWithProviders(
-        <TestAuthFormWrapper onSubmit={mockSubmit} successMessage={successMessage} />
-      );
+      renderWithProviders(<TestAuthFormWrapper onSubmit={mockSubmit} successMessage={successMessage} />);
 
       expect(screen.getByRole("alert")).toBeInTheDocument();
       expect(screen.getByText(successMessage)).toBeInTheDocument();
@@ -187,11 +173,7 @@ describe("AuthForm", () => {
       const errorMessage = "Błąd";
       const successMessage = "Sukces";
       renderWithProviders(
-        <TestAuthFormWrapper
-          onSubmit={mockSubmit}
-          globalError={errorMessage}
-          successMessage={successMessage}
-        />
+        <TestAuthFormWrapper onSubmit={mockSubmit} globalError={errorMessage} successMessage={successMessage} />
       );
 
       const alerts = screen.getAllByRole("alert");
@@ -204,9 +186,7 @@ describe("AuthForm", () => {
   describe("Stan submitting", () => {
     it("wyświetla Loader2 gdy formularz jest w trakcie wysyłania", async () => {
       const user = userEvent.setup();
-      const mockSubmit = vi.fn(
-        () => new Promise((resolve) => setTimeout(resolve, 1000))
-      );
+      const mockSubmit = vi.fn(() => new Promise((resolve) => setTimeout(resolve, 1000)));
 
       renderWithProviders(<TestAuthFormWrapper onSubmit={mockSubmit} />);
 
@@ -221,7 +201,7 @@ describe("AuthForm", () => {
 
       // Sprawdź czy loader się pojawił
       await waitFor(() => {
-        const svg = submitButton.querySelector('svg');
+        const svg = submitButton.querySelector("svg");
         expect(svg).toBeInTheDocument();
         expect(svg).toHaveClass("animate-spin");
       });
@@ -229,9 +209,7 @@ describe("AuthForm", () => {
 
     it("disabluje przycisk gdy isSubmitting = true", async () => {
       const user = userEvent.setup();
-      const mockSubmit = vi.fn(
-        () => new Promise((resolve) => setTimeout(resolve, 1000))
-      );
+      const mockSubmit = vi.fn(() => new Promise((resolve) => setTimeout(resolve, 1000)));
 
       renderWithProviders(<TestAuthFormWrapper onSubmit={mockSubmit} />);
 
@@ -318,7 +296,7 @@ describe("AuthForm", () => {
       // Wypełnij formularz
       await user.type(emailInput, "test@example.com");
       await user.type(passwordInput, "password123");
-      
+
       // Wciśnij Enter w ostatnim polu
       await user.keyboard("{Enter}");
 
@@ -339,4 +317,3 @@ describe("AuthForm", () => {
     });
   });
 });
-
