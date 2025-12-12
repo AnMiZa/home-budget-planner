@@ -25,11 +25,11 @@ export const MainLayout = ({ children, user }: MainLayoutProps) => {
   const { ToastPortal } = useToast();
 
   const mainPaddingClasses = useMemo(() => {
-    if (isDesktop) {
-      return "pl-72";
+    if (!isDesktop) {
+      return "pb-24";
     }
 
-    return "pb-24";
+    return "";
   }, [isDesktop]);
 
   return (

@@ -1,4 +1,4 @@
-import { createContext, useCallback, useContext, useMemo, useState } from "react";
+import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
 
 interface UIContextValue {
   readonly isAddExpenseSheetOpen: boolean;
@@ -32,6 +32,14 @@ export const UIContextProvider = ({ children }: UIContextProviderProps) => {
     () => ({ isAddExpenseSheetOpen, openAddExpenseSheet, closeAddExpenseSheet, toggleAddExpenseSheet }),
     [closeAddExpenseSheet, isAddExpenseSheetOpen, openAddExpenseSheet, toggleAddExpenseSheet]
   );
+
+  // Add marker to DOM when context is ready (for E2E tests)
+  useEffect(() => {
+    document.body.setAttribute("data-ui-context-ready", "true");
+    return () => {
+      document.body.removeAttribute("data-ui-context-ready");
+    };
+  }, []);
 
   return <UIContext.Provider value={value}>{children}</UIContext.Provider>;
 };

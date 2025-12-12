@@ -118,19 +118,10 @@ export const GET: APIRoute = async ({ request, locals }) => {
     }
 
     // Get authenticated user
-    // const {
-    //   data: { user },
-    //   error: authError,
-    // } = await supabase.auth.getUser();
-
-    //TODO: remove after development
     const {
       data: { user },
       error: authError,
-    } = await supabase.auth.signInWithPassword({
-      email: "andrzejzab@gmail.com",
-      password: "Lolopolo1!",
-    });
+    } = await supabase.auth.getUser();
 
     if (authError) {
       console.error("Authentication error:", authError);

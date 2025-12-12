@@ -73,7 +73,11 @@ export const AddExpenseSheet = () => {
   if (isAddExpenseSheetOpen && !isLoadingBudget && !budgetId) {
     return (
       <Dialog open={isAddExpenseSheetOpen} onOpenChange={closeAddExpenseSheet}>
-        <DialogContent className="sm:max-w-[425px]">
+        <DialogContent
+          className="sm:max-w-[425px]"
+          data-testid="add-expense-dialog"
+          onInteractOutside={(e) => e.preventDefault()}
+        >
           <DialogHeader>
             <DialogTitle>Dodaj wydatek</DialogTitle>
           </DialogHeader>
@@ -84,6 +88,7 @@ export const AddExpenseSheet = () => {
             <a
               href="/new-budget"
               className="inline-flex h-10 w-full items-center justify-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground ring-offset-background transition-colors hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+              data-testid="create-budget-link"
             >
               Utwórz budżet
             </a>
@@ -99,15 +104,22 @@ export const AddExpenseSheet = () => {
   if (isAddExpenseSheetOpen && categoriesError && !isLoadingCategories) {
     return (
       <Dialog open={isAddExpenseSheetOpen} onOpenChange={closeAddExpenseSheet}>
-        <DialogContent className="sm:max-w-[425px]">
+        <DialogContent
+          className="sm:max-w-[425px]"
+          data-testid="add-expense-dialog"
+          onInteractOutside={(e) => e.preventDefault()}
+        >
           <DialogHeader>
             <DialogTitle>Dodaj wydatek</DialogTitle>
           </DialogHeader>
           <div className="space-y-4 py-4">
-            <p className="text-sm text-destructive">{categoriesError.message}</p>
+            <p className="text-sm text-destructive" data-testid="error-message">
+              {categoriesError.message}
+            </p>
             <button
               onClick={() => void refetchCategories()}
               className="inline-flex h-10 w-full items-center justify-center rounded-md border border-input bg-background px-4 py-2 text-sm font-medium ring-offset-background transition-colors hover:bg-accent hover:text-accent-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+              data-testid="retry-button"
             >
               Spróbuj ponownie
             </button>
@@ -122,7 +134,11 @@ export const AddExpenseSheet = () => {
    */
   return (
     <Dialog open={isAddExpenseSheetOpen} onOpenChange={closeAddExpenseSheet}>
-      <DialogContent className="sm:max-w-[425px]">
+      <DialogContent
+        className="sm:max-w-[425px]"
+        data-testid="add-expense-dialog"
+        onInteractOutside={(e) => e.preventDefault()}
+      >
         <DialogHeader>
           <DialogTitle>Dodaj wydatek</DialogTitle>
         </DialogHeader>

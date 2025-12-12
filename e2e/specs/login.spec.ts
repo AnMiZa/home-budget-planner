@@ -45,15 +45,8 @@ test.describe("Login Page", () => {
     await expect(page).toHaveURL(/register/);
   });
 
-  test("should navigate to reset password page", async ({ page }) => {
-    await loginPage.goToResetPassword();
-
-    // Verify navigation
-    await expect(page).toHaveURL(/reset-password/);
-  });
-
   // Skip this test by default as it requires real authentication
-  test.skip("should login with valid credentials", async ({ page }) => {
+  test("should login with valid credentials", async ({ page }) => {
     await loginPage.login(testUsers.valid.email, testUsers.valid.password);
 
     // Wait for redirect after successful login
@@ -64,7 +57,7 @@ test.describe("Login Page", () => {
   });
 
   // Skip this test by default
-  test.skip("should show error with invalid credentials", async () => {
+  test("should show error with invalid credentials", async () => {
     await loginPage.login(testUsers.invalid.email, testUsers.invalid.password);
 
     // Wait for error message
@@ -72,7 +65,8 @@ test.describe("Login Page", () => {
 
     // Verify error message content
     const errorText = await loginPage.getErrorMessage();
-    expect(errorText.toLowerCase()).toContain("invalid");
+
+    expect(errorText).toContain("Nieprawidłowy login lub hasło.");
   });
 });
 

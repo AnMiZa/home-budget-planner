@@ -18,6 +18,7 @@ export const AddExpenseButton = ({ variant }: AddExpenseButtonProps) => {
         onClick={openAddExpenseSheet}
         className="-mt-6 h-14 w-14 rounded-full bg-primary text-primary-foreground shadow-lg shadow-primary/50 transition-transform hover:scale-105 focus-visible:scale-105"
         aria-label="Dodaj wydatek"
+        data-testid="add-expense-button-tabbar"
       >
         <Plus className="size-6" aria-hidden />
       </Button>
@@ -32,6 +33,7 @@ export const AddExpenseButton = ({ variant }: AddExpenseButtonProps) => {
         "mt-auto w-full justify-center gap-2 bg-primary text-primary-foreground hover:bg-primary/90",
         "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
       )}
+      data-testid="add-expense-button-sidebar"
     >
       <Plus className="size-4" aria-hidden />
       Dodaj wydatek

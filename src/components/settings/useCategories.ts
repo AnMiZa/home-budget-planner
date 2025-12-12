@@ -556,3 +556,4 @@ export const useCategories = (): UseCategoriesResult => {
     ),
   };
 };
+

@@ -1,5 +1,6 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { CalendarIcon } from "lucide-react";
+import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 
@@ -58,6 +59,8 @@ export const AddExpenseForm = ({
   submitError,
   onClearError,
 }: AddExpenseFormProps) => {
+  const [isCalendarOpen, setIsCalendarOpen] = useState(false);
+
   const form = useForm<AddExpenseFormValues>({
     resolver: zodResolver(addExpenseFormSchema),
     defaultValues: {
@@ -83,7 +86,7 @@ export const AddExpenseForm = ({
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4">
+      <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4" data-testid="add-expense-form">
         {/* Amount field */}
         <FormField
           control={form.control}
@@ -92,7 +95,14 @@ export const AddExpenseForm = ({
             <FormItem>
               <FormLabel>Kwota</FormLabel>
               <FormControl>
-                <Input type="number" step="0.01" placeholder="0.00" disabled={isSubmitting} {...field} />
+                <Input
+                  type="number"
+                  step="0.01"
+                  placeholder="0.00"
+                  disabled={isSubmitting}
+                  data-testid="expense-amount-input"
+                  {...field}
+                />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -112,16 +122,20 @@ export const AddExpenseForm = ({
                 disabled={isSubmitting || isLoadingCategories}
               >
                 <FormControl>
-                  <SelectTrigger>
+                  <SelectTrigger data-testid="expense-category-select">
                     <SelectValue placeholder="Wybierz kategorię" />
                   </SelectTrigger>
                 </FormControl>
-                <SelectContent>
+                <SelectContent data-testid="expense-category-options">
                   {categories.length === 0 && !isLoadingCategories && (
                     <div className="px-2 py-6 text-center text-sm text-muted-foreground">Brak dostępnych kategorii</div>
                   )}
                   {categories.map((category) => (
-                    <SelectItem key={category.id} value={category.id}>
+                    <SelectItem
+                      key={category.id}
+                      value={category.id}
+                      data-testid={`expense-category-option-${category.id}`}
+                    >
                       {category.name}
                     </SelectItem>
                   ))}
@@ -139,26 +153,29 @@ export const AddExpenseForm = ({
           render={({ field }) => (
             <FormItem className="flex flex-col">
               <FormLabel>Data transakcji</FormLabel>
-              <Popover>
+              <Popover open={isCalendarOpen} onOpenChange={setIsCalendarOpen}>
                 <PopoverTrigger asChild>
                   <FormControl>
                     <Button
+                      type="button"
                       variant="outline"
                       className={cn("w-full pl-3 text-left font-normal", !field.value && "text-muted-foreground")}
                       disabled={isSubmitting}
+                      data-testid="expense-date-trigger"
                     >
                       {field.value ? formatDate(field.value) : <span>Wybierz datę</span>}
                       <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
                     </Button>
                   </FormControl>
                 </PopoverTrigger>
-                <PopoverContent className="w-auto p-0" align="start">
+                <PopoverContent className="w-auto p-0" align="start" data-testid="expense-date-calendar">
                   <Calendar
                     mode="single"
                     selected={field.value ? new Date(field.value) : undefined}
                     onSelect={(date) => {
                       if (date) {
                         field.onChange(formatDateToISO(date));
+                        setIsCalendarOpen(false);
                       }
                     }}
                     disabled={(date) => date > new Date() || date < new Date("1900-01-01")}
@@ -184,6 +201,7 @@ export const AddExpenseForm = ({
                   className="resize-none"
                   rows={3}
                   disabled={isSubmitting}
+                  data-testid="expense-note-input"
                   {...field}
                 />
               </FormControl>
@@ -193,14 +211,30 @@ export const AddExpenseForm = ({
         />
 
         {/* Error message */}
-        {submitError && <div className="rounded-md bg-destructive/10 p-3 text-sm text-destructive">{submitError}</div>}
+        {submitError && (
+          <div className="rounded-md bg-destructive/10 p-3 text-sm text-destructive" data-testid="form-error-message">
+            {submitError}
+          </div>
+        )}
 
         {/* Action buttons */}
         <div className="flex gap-3 pt-2">
-          <Button type="button" variant="outline" onClick={onCancel} disabled={isSubmitting} className="flex-1">
+          <Button
+            type="button"
+            variant="outline"
+            onClick={onCancel}
+            disabled={isSubmitting}
+            className="flex-1"
+            data-testid="cancel-expense-button"
+          >
             Anuluj
           </Button>
-          <Button type="submit" disabled={isSubmitting || isLoadingCategories} className="flex-1">
+          <Button
+            type="submit"
+            disabled={isSubmitting || isLoadingCategories}
+            className="flex-1"
+            data-testid="submit-expense-button"
+          >
             {isSubmitting ? "Zapisywanie..." : "Zapisz wydatek"}
           </Button>
         </div>

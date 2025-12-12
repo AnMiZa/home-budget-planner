@@ -1,5 +1,8 @@
 import { defineConfig, devices } from "@playwright/test";
+import dotenv from "dotenv";
+import path from "path";
 
+dotenv.config({ path: path.resolve(process.cwd(), ".env.test") });
 /**
  * Playwright E2E Testing Configuration
  *
@@ -13,6 +16,9 @@ import { defineConfig, devices } from "@playwright/test";
  */
 
 export default defineConfig({
+  // Global setup - runs once before all tests
+  globalSetup: "./e2e/global-setup.ts",
+
   // Test directory
   testDir: "./e2e",
 
@@ -85,5 +91,7 @@ export default defineConfig({
     url: "http://localhost:4321",
     reuseExistingServer: !process.env.CI,
     timeout: 120 * 1000,
+    stdout: "pipe",
+    stderr: "pipe",
   },
 });

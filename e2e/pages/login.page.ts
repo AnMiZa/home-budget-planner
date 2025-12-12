@@ -19,13 +19,14 @@ export class LoginPage extends BasePage {
   constructor(page: Page) {
     super(page);
 
-    // Initialize locators using accessible selectors
-    this.emailInput = this.getByLabel(/email/i);
-    this.passwordInput = this.getByLabel(/password/i);
-    this.submitButton = this.getByRole("button", { name: /log in|sign in/i });
+    // Initialize locators using accessible selectors (Polish labels)
+    // Use placeholder as fallback since label association might not work with React form
+    this.emailInput = page.getByPlaceholder(/kowalski@example\.com/i);
+    this.passwordInput = page.getByPlaceholder(/\*\*\*\*\*\*\*\*/);
+    this.submitButton = this.getByRole("button", { name: /zaloguj się/i });
     this.errorMessage = page.locator('[role="alert"]');
-    this.registerLink = this.getByRole("link", { name: /register|sign up/i });
-    this.resetPasswordLink = this.getByRole("link", { name: /forgot password|reset/i });
+    this.registerLink = this.getByRole("link", { name: /zarejestruj się/i });
+    this.resetPasswordLink = this.getByRole("link", { name: /nie pamiętasz hasła/i });
   }
 
   /**
@@ -34,6 +35,8 @@ export class LoginPage extends BasePage {
   async goto() {
     await super.goto("/login");
     await this.waitForLoad();
+    // Wait for React form to hydrate
+    await this.emailInput.waitFor({ state: "visible", timeout: 15000 });
   }
 
   /**

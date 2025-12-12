@@ -15,16 +15,31 @@ export class BasePage {
 
   /**
    * Navigate to a specific path
+   * Waits for page to be fully loaded including React hydration
    */
   async goto(path: string) {
     await this.page.goto(path);
+    await this.waitForLoad();
   }
 
   /**
    * Wait for page to be loaded
+   * Ensures both network idle and DOM content loaded for React hydration
    */
   async waitForLoad() {
+    await this.page.waitForLoadState("domcontentloaded");
     await this.page.waitForLoadState("networkidle");
+  }
+
+  /**
+   * Wait for React UI Context to be ready
+   * This ensures React has hydrated and the context is available
+   */
+  async waitForReactContext() {
+    await this.page.waitForSelector('[data-ui-context-ready="true"]', {
+      state: "attached",
+      timeout: 15000,
+    });
   }
 
   /**

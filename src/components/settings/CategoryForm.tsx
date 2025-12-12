@@ -135,3 +135,4 @@ export const CategoryForm = ({ category, onSubmit, onCancel, formError, onClearE
     </Form>
   );
 };
+
