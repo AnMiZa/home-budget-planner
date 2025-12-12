@@ -30,7 +30,11 @@ test.describe("Add Expense Flow", () => {
   });
 
   test.describe("Opening Add Expense Dialog", () => {
-    test("should open dialog when clicking Add Expense button in sidebar", async () => {
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    test("should open dialog when clicking Add Expense button in sidebar", async ({ page }, testInfo) => {
+      // Skip this test on mobile projects - sidebar is not visible on mobile
+      test.skip(testInfo.project.name === "mobile-chrome", "Sidebar is not visible on mobile viewports");
+
       // Arrange - ensure we're on dashboard
       await expect(dashboardPage.page).toHaveURL("/");
 

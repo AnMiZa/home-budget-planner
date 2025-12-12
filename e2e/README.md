@@ -4,7 +4,7 @@ This directory contains end-to-end tests for the Home Budget Planner application
 
 ## Structure
 
-```
+```text
 e2e/
 ├── examples/          # Example test files
 ├── fixtures/          # Test data and fixtures
@@ -26,7 +26,9 @@ e2e/
 ├── specs/             # Test specifications
 │   └── add-expense.spec.ts
 ├── global-setup.ts    # Global test setup (runs before all tests)
+├── global-teardown.ts # Global test teardown (runs after all tests)
 ├── DATABASE_SETUP.md  # Database setup documentation
+├── DATABASE_TEARDOWN.md # Database teardown documentation
 ├── RUN_TESTS.md       # Quick start guide
 ├── TROUBLESHOOTING.md # Troubleshooting guide
 └── README.md          # This file
@@ -190,7 +192,11 @@ The E2E tests use a real test database with pre-configured data. Before tests ru
 - **Household Members**: 2 test members (Jan Kowalski, Anna Kowalska)
 - **Test Budgets**: 2 budgets (current month and next month) with incomes and planned expenses
 
+After all tests complete, the global teardown script automatically cleans up all test data from the database.
+
 **📖 For detailed information about database setup, see [DATABASE_SETUP.md](./DATABASE_SETUP.md)**
+
+**📖 For detailed information about database teardown, see [DATABASE_TEARDOWN.md](./DATABASE_TEARDOWN.md)**
 
 ### Fixture Test Data
 
@@ -352,6 +358,7 @@ Common issues:
 
 - [Quick Start Guide](./RUN_TESTS.md) - Fast guide to running tests
 - [Database Setup](./DATABASE_SETUP.md) - Database configuration and test data
+- [Database Teardown](./DATABASE_TEARDOWN.md) - Database cleanup after tests
 - [Troubleshooting Guide](./TROUBLESHOOTING.md) - Common issues and solutions
 
 ### External Resources

@@ -19,6 +19,9 @@ export default defineConfig({
   // Global setup - runs once before all tests
   globalSetup: "./e2e/global-setup.ts",
 
+  // Global teardown - runs once after all tests
+  globalTeardown: "./e2e/global-teardown.ts",
+
   // Test directory
   testDir: "./e2e",
 
