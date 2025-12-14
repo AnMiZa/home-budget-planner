@@ -1,4 +1,4 @@
-import { Page, Locator } from "@playwright/test";
+import type { Locator, Page } from "@playwright/test";
 import { BasePage } from "../pages/base.page";
 import { NavigationComponent } from "./components/navigation.component";
 import { AddExpenseDialogComponent } from "./components/add-expense-dialog.component";
@@ -68,10 +68,10 @@ export class DashboardPage extends BasePage {
     // Ensure page is fully loaded (including React hydration)
     await this.waitForLoad();
     await this.waitForReactContext();
-    
+
     // Click the Add Expense button
     await this.navigation.clickAddExpense();
-    
+
     // Wait for dialog to appear
     await this.addExpenseDialog.waitForDialog();
   }
@@ -95,7 +95,7 @@ export class DashboardPage extends BasePage {
 
     // Wait for dialog to close
     await this.addExpenseDialog.waitForDialogToClose();
-    
+
     // Wait for any post-submission updates
     await this.page.waitForLoadState("networkidle");
   }
@@ -145,4 +145,3 @@ export class DashboardPage extends BasePage {
     await this.page.waitForLoadState("networkidle");
   }
 }
-

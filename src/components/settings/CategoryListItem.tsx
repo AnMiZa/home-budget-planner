@@ -34,4 +34,3 @@ export const CategoryListItem = ({ category, onEdit, onDelete }: CategoryListIte
     </div>
   </li>
 );
-

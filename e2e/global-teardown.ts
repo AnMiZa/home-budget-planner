@@ -1,4 +1,3 @@
-import { FullConfig } from "@playwright/test";
 import dotenv from "dotenv";
 import path from "path";
 import { testUsers } from "./fixtures/test-data";
@@ -20,7 +19,7 @@ dotenv.config({ path: path.resolve(process.cwd(), ".env.test") });
  * - E2E_USERNAME (test user email)
  * - E2E_PASSWORD (test user password)
  */
-async function globalTeardown(config: FullConfig) {
+async function globalTeardown() {
   console.log("\n🧹 Running global teardown...");
 
   try {
@@ -59,4 +58,3 @@ async function globalTeardown(config: FullConfig) {
 }
 
 export default globalTeardown;
-

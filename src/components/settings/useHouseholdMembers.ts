@@ -495,4 +495,3 @@ export const useHouseholdMembers = (): UseHouseholdMembersResult => {
     ),
   };
 };
-

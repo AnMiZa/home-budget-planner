@@ -204,9 +204,7 @@ describe("RegisterSchema", () => {
       const result = registerSchema.safeParse(invalidData);
       expect(result.success).toBe(false);
       if (!result.success) {
-        const upperCaseError = result.error.issues.find((issue) =>
-          issue.message.includes("wielką literę")
-        );
+        const upperCaseError = result.error.issues.find((issue) => issue.message.includes("wielką literę"));
         expect(upperCaseError).toBeDefined();
       }
     });
@@ -238,9 +236,7 @@ describe("RegisterSchema", () => {
       const result = registerSchema.safeParse(invalidData);
       expect(result.success).toBe(false);
       if (!result.success) {
-        const lowerCaseError = result.error.issues.find((issue) =>
-          issue.message.includes("małą literę")
-        );
+        const lowerCaseError = result.error.issues.find((issue) => issue.message.includes("małą literę"));
         expect(lowerCaseError).toBeDefined();
       }
     });
@@ -456,9 +452,7 @@ describe("UpdatePasswordSchema", () => {
       const result = updatePasswordSchema.safeParse(invalidData);
       expect(result.success).toBe(false);
       if (!result.success) {
-        const upperCaseError = result.error.issues.find((issue) =>
-          issue.message.includes("wielką literę")
-        );
+        const upperCaseError = result.error.issues.find((issue) => issue.message.includes("wielką literę"));
         expect(upperCaseError).toBeDefined();
       }
     });
@@ -474,9 +468,7 @@ describe("UpdatePasswordSchema", () => {
       const result = updatePasswordSchema.safeParse(invalidData);
       expect(result.success).toBe(false);
       if (!result.success) {
-        const lowerCaseError = result.error.issues.find((issue) =>
-          issue.message.includes("małą literę")
-        );
+        const lowerCaseError = result.error.issues.find((issue) => issue.message.includes("małą literę"));
         expect(lowerCaseError).toBeDefined();
       }
     });
@@ -524,4 +516,3 @@ describe("UpdatePasswordSchema", () => {
     });
   });
 });
-

@@ -25,22 +25,19 @@ export const ResetPasswordForm = () => {
     },
   });
 
-  const handleSubmit = useCallback(
-    async (values: ResetPasswordFormValues) => {
-      setGlobalError(null);
-      setSuccessMessage(null);
+  const handleSubmit = useCallback(async () => {
+    setGlobalError(null);
+    setSuccessMessage(null);
 
-      try {
-        // TODO: Zastąpić atrapę wywołaniem endpointu /api/auth/reset-password po dodaniu backendu.
-        await new Promise((resolve) => setTimeout(resolve, 600));
-        setSuccessMessage("Jeśli podany e-mail istnieje, wkrótce otrzymasz wiadomość z instrukcją zmiany hasła.");
-        form.reset();
-      } catch (error) {
-        setGlobalError("Nie udało się wysłać formularza. Spróbuj ponownie.");
-      }
-    },
-    [form]
-  );
+    try {
+      // TODO: Zastąpić atrapę wywołaniem endpointu /api/auth/reset-password po dodaniu backendu.
+      await new Promise((resolve) => setTimeout(resolve, 600));
+      setSuccessMessage("Jeśli podany e-mail istnieje, wkrótce otrzymasz wiadomość z instrukcją zmiany hasła.");
+      form.reset();
+    } catch (error: unknown) {
+      setGlobalError("Nie udało się wysłać formularza. Spróbuj ponownie. " + error);
+    }
+  }, [form, setGlobalError, setSuccessMessage]);
 
   return (
     <AuthForm<ResetPasswordFormValues>

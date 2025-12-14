@@ -34,4 +34,3 @@ export const HouseholdMemberListItem = ({ member, onEdit, onDelete }: HouseholdM
     </div>
   </li>
 );
-

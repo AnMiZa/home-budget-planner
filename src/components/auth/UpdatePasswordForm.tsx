@@ -37,22 +37,19 @@ export const UpdatePasswordForm = () => {
     },
   });
 
-  const handleSubmit = useCallback(
-    async (values: UpdatePasswordFormValues) => {
-      setGlobalError(null);
-      setSuccessMessage(null);
+  const handleSubmit = useCallback(async () => {
+    setGlobalError(null);
+    setSuccessMessage(null);
 
-      try {
-        // TODO: Zastąpić atrapę wywołaniem endpointu /api/auth/update-password po dodaniu backendu.
-        await new Promise((resolve) => setTimeout(resolve, 700));
-        setSuccessMessage("Hasło zostanie zaktualizowane po połączeniu z backendem.");
-        form.reset({ password: "", confirmPassword: "" });
-      } catch (error) {
-        setGlobalError("Nie udało się wysłać formularza. Spróbuj ponownie.");
-      }
-    },
-    [form]
-  );
+    try {
+      // TODO: Zastąpić atrapę wywołaniem endpointu /api/auth/update-password po dodaniu backendu.
+      await new Promise((resolve) => setTimeout(resolve, 700));
+      setSuccessMessage("Hasło zostanie zaktualizowane po połączeniu z backendem.");
+      form.reset({ password: "", confirmPassword: "" });
+    } catch (error: unknown) {
+      setGlobalError("Nie udało się wysłać formularza. Spróbuj ponownie. " + error);
+    }
+  }, [form, setGlobalError, setSuccessMessage]);
 
   return (
     <AuthForm<UpdatePasswordFormValues>
