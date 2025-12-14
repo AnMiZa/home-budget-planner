@@ -171,32 +171,3 @@ jobs:
           echo ""
           echo "📁 Build structure:"
           ls -lh dist/
-
-  # Job 5: Summary
-  ci-summary:
-    name: CI Summary
-    runs-on: ubuntu-latest
-    needs: [lint-and-typecheck, unit-tests, e2e-tests, build]
-    if: always()
-
-    steps:
-      - name: Check job statuses
-        run: |
-          echo "🔍 CI Pipeline Summary"
-          echo "====================="
-          echo "Lint & Type Check: ${{ needs.lint-and-typecheck.result }}"
-          echo "Unit Tests: ${{ needs.unit-tests.result }}"
-          echo "E2E Tests: ${{ needs.e2e-tests.result }}"
-          echo "Production Build: ${{ needs.build.result }}"
-
-          if [[ "${{ needs.lint-and-typecheck.result }}" == "failure" ]] || \
-             [[ "${{ needs.unit-tests.result }}" == "failure" ]] || \
-             [[ "${{ needs.e2e-tests.result }}" == "failure" ]] || \
-             [[ "${{ needs.build.result }}" == "failure" ]]; then
-            echo ""
-            echo "❌ CI Pipeline FAILED"
-            exit 1
-          else
-            echo ""
-            echo "✅ CI Pipeline PASSED"
-          fi
