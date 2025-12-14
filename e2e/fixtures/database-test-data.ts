@@ -1,6 +1,6 @@
 /**
  * Database test data fixtures for E2E tests
- * 
+ *
  * This file defines the test data that will be created in the database
  * during global setup. This ensures all E2E tests have consistent,
  * predictable data to work with.
@@ -26,8 +26,8 @@ export const testHouseholdMembers: TestHouseholdMember[] = [
  * Note: These will be created with incomes from the household members above
  */
 export function createTestBudgets(
-  members: Array<{ id: string; fullName: string }>,
-  categories: Array<{ id: string; name: string }>
+  members: { id: string; fullName: string }[],
+  categories: { id: string; name: string }[]
 ): TestBudget[] {
   const currentDate = new Date();
   // Format as YYYY-MM-01 (first day of month) for date type in database
@@ -116,4 +116,3 @@ export const additionalTestCategories = [
     name: "Test Category 2",
   },
 ];
-

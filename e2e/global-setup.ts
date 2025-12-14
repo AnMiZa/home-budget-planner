@@ -1,4 +1,4 @@
-import { chromium, FullConfig } from "@playwright/test";
+import { chromium, type FullConfig } from "@playwright/test";
 import { testUsers } from "./fixtures/test-data";
 import { setupTestData } from "./helpers/database-setup";
 import { testHouseholdMembers, createTestBudgets } from "./fixtures/database-test-data";
