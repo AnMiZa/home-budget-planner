@@ -13,11 +13,11 @@ import { cn } from "@/lib/utils";
 
 const Form = FormProvider;
 
-interface FormFieldContextValue<TFieldValues, TName extends string = string> {
+interface FormFieldContextValue<TName extends string = string> {
   readonly name: TName;
 }
 
-const FormFieldContext = React.createContext<FormFieldContextValue<any> | undefined>(undefined);
+const FormFieldContext = React.createContext<FormFieldContextValue<string> | undefined>(undefined);
 
 const FormField = <TFieldValues extends FieldValues, TName extends FieldPath<TFieldValues>>({
   name,

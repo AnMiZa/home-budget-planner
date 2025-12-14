@@ -66,7 +66,6 @@ const DASHBOARD_ENDPOINT = "/api/dashboard/current";
 const CATEGORIES_ENDPOINT = "/api/categories";
 const DEFAULT_PAGE_SIZE = 20;
 const MAX_CATEGORIES_PER_PAGE = 100;
-const DEFAULT_SORT = "date_desc";
 
 export const useTransactionsHistory = ({
   pageSize = DEFAULT_PAGE_SIZE,

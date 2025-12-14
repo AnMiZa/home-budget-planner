@@ -3,7 +3,7 @@ import { screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { useForm } from "react-hook-form";
 import { renderWithProviders } from "../../utils/test-helpers";
-import { AuthForm, AuthFormProps } from "@/components/auth/AuthForm";
+import { AuthForm } from "@/components/auth/AuthForm";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 

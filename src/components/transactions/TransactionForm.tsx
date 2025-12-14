@@ -76,23 +76,6 @@ export const TransactionForm = ({
   const transactionDateValue = form.watch("transactionDate");
   const [isTransactionDateOpen, setIsTransactionDateOpen] = useState(false);
 
-  const handleTransactionDateSelect = useCallback(
-    (date: Date | undefined) => {
-      if (!date) {
-        return;
-      }
-
-      const isoDate = format(date, "yyyy-MM-dd");
-      form.setValue("transactionDate", isoDate, {
-        shouldDirty: true,
-        shouldTouch: true,
-        shouldValidate: true,
-      });
-      setIsTransactionDateOpen(false);
-    },
-    [form]
-  );
-
   const onFormSubmit = useCallback(
     async (values: TransactionFormValues) => {
       const payload: UpdateTransactionCommand = {};

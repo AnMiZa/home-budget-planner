@@ -135,7 +135,7 @@ export class TransactionsService {
     }
 
     // Prepare update object with only provided fields
-    const updateData: Record<string, any> = {};
+    const updateData: Record<string, unknown> = {};
 
     if (command.categoryId !== undefined) {
       updateData.category_id = command.categoryId;
@@ -262,7 +262,17 @@ export class TransactionsService {
    * @param transaction - The transaction record from the database
    * @returns Mapped TransactionDto
    */
-  private mapTransactionToDto(transaction: any): TransactionDto {
+  private mapTransactionToDto(transaction: {
+    id: string;
+    household_id: string;
+    budget_id: string;
+    category_id: string;
+    amount: number | string;
+    transaction_date: string;
+    note: string | null;
+    created_at: string;
+    updated_at: string;
+  }): TransactionDto {
     return {
       id: transaction.id,
       householdId: transaction.household_id,

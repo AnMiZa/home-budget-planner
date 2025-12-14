@@ -1,4 +1,4 @@
-import type { CategoryDto, CreateTransactionCommand, TransactionDto } from "@/types";
+import type { CategoryDto, TransactionDto } from "@/types";
 
 /**
  * Wartości formularza dodawania wydatku.

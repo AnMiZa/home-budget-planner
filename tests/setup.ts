@@ -24,20 +24,36 @@ Object.defineProperty(window, "matchMedia", {
 
 // Mock IntersectionObserver
 global.IntersectionObserver = class IntersectionObserver {
-  disconnect(): void {}
-  observe(): void {}
+  root: Element | null = null;
+  rootMargin = "";
+  thresholds: readonly number[] = [];
+
+  disconnect(): void {
+    // Mock implementation
+  }
+  observe(): void {
+    // Mock implementation
+  }
   takeRecords(): IntersectionObserverEntry[] {
     return [];
   }
-  unobserve(): void {}
-};
+  unobserve(): void {
+    // Mock implementation
+  }
+} as unknown as typeof IntersectionObserver;
 
 // Mock ResizeObserver
 global.ResizeObserver = class ResizeObserver {
-  disconnect(): void {}
-  observe(): void {}
-  unobserve(): void {}
-};
+  disconnect(): void {
+    // Mock implementation
+  }
+  observe(): void {
+    // Mock implementation
+  }
+  unobserve(): void {
+    // Mock implementation
+  }
+} as unknown as typeof ResizeObserver;
 
 // Suppress console errors in tests (optional)
 // Uncomment if you want to suppress noise in test output
