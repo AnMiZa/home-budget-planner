@@ -1,4 +1,12 @@
-name: Tests
+name: Tests (Example)
+
+# This is an EXAMPLE workflow file.
+# The actual CI/CD pipeline is configured in ci.yml
+# 
+# To use this workflow:
+# 1. Rename to test.yml
+# 2. Configure required secrets (see SECRETS_SETUP.md)
+# 3. Adjust triggers and configuration as needed
 
 on:
   push:
@@ -6,9 +14,22 @@ on:
   pull_request:
     branches: [main, master, develop]
 
+permissions:
+  contents: read
+
 jobs:
   test:
     runs-on: ubuntu-latest
+    
+    # Required environment variables for E2E tests
+    env:
+      PUBLIC_SUPABASE_URL: ${{ secrets.PUBLIC_SUPABASE_URL }}
+      PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.PUBLIC_SUPABASE_ANON_KEY }}
+      SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+      E2E_USERNAME: ${{ secrets.E2E_USERNAME }}
+      E2E_PASSWORD: ${{ secrets.E2E_PASSWORD }}
+      BASE_URL: http://localhost:4321
+      CI: true
     
     steps:
       - name: Checkout code
@@ -35,11 +56,13 @@ jobs:
       - name: Generate coverage report
         run: npm run test:coverage
 
-      - name: Upload coverage to Codecov (optional)
-        uses: codecov/codecov-action@v3
+      - name: Upload coverage report
+        uses: actions/upload-artifact@v4
+        if: always()
         with:
-          files: ./coverage/lcov.info
-          fail_ci_if_error: false
+          name: coverage-report
+          path: coverage/
+          retention-days: 30
 
       - name: Install Playwright browsers
         run: npx playwright install chromium --with-deps
@@ -63,3 +86,12 @@ jobs:
           path: test-results/
           retention-days: 30
 
+      - name: Build production bundle
+        run: npm run build
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: dist
+          path: dist/
+          retention-days: 7

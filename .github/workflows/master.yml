@@ -1,0 +1,202 @@
+name: Test & Build Master
+
+on:
+  # Automatyczne uruchomienie po push do master/main
+  push:
+    branches: [main, master]
+
+  # Manualne uruchomienie
+  workflow_dispatch:
+
+# Uprawnienia dla GitHub Actions
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  # Job 1: Lint i Type Check
+  lint-and-typecheck:
+    name: Lint & Type Check
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: ".nvmrc"
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run ESLint
+        run: npm run lint
+
+      - name: Run TypeScript type check
+        run: npx tsc --noEmit
+
+  # Job 2: Unit & Integration Tests
+  unit-tests:
+    name: Unit & Integration Tests
+    runs-on: ubuntu-latest
+    needs: lint-and-typecheck
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: ".nvmrc"
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run Vitest tests
+        run: npm test
+
+      - name: Generate coverage report
+        run: npm run test:coverage
+
+      - name: Upload coverage report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: coverage-report
+          path: coverage/
+          retention-days: 30
+
+  # Job 3: E2E Tests
+  e2e-tests:
+    name: E2E Tests (Playwright)
+    runs-on: ubuntu-latest
+    needs: lint-and-typecheck
+
+    # Zmienne środowiskowe dla testów E2E
+    env:
+      # Supabase - wymagane do testów E2E
+      PUBLIC_SUPABASE_URL: ${{ secrets.PUBLIC_SUPABASE_URL }}
+      PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.PUBLIC_SUPABASE_ANON_KEY }}
+      SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+
+      # Test user credentials
+      E2E_USERNAME: ${{ secrets.E2E_USERNAME }}
+      E2E_PASSWORD: ${{ secrets.E2E_PASSWORD }}
+
+      # Base URL dla testów
+      BASE_URL: http://localhost:4321
+
+      # CI flag dla Playwright
+      CI: true
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: ".nvmrc"
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Playwright browsers
+        run: npx playwright install chromium --with-deps
+
+      - name: Run E2E tests
+        run: npm run test:e2e
+
+      - name: Upload Playwright report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: playwright-report
+          path: playwright-report/
+          retention-days: 30
+
+      - name: Upload test results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: test-results
+          path: test-results/
+          retention-days: 30
+
+  # Job 4: Production Build
+  build:
+    name: Production Build
+    runs-on: ubuntu-latest
+    needs: [unit-tests, e2e-tests]
+
+    # Zmienne środowiskowe dla build
+    env:
+      PUBLIC_SUPABASE_URL: ${{ secrets.PUBLIC_SUPABASE_URL }}
+      PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.PUBLIC_SUPABASE_ANON_KEY }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: ".nvmrc"
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build production bundle
+        run: npm run build
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: dist
+          path: dist/
+          retention-days: 7
+
+      - name: Display build info
+        run: |
+          echo "✅ Production build completed successfully"
+          echo "📦 Build size:"
+          du -sh dist/
+          echo ""
+          echo "📁 Build structure:"
+          ls -lh dist/
+
+  # Job 5: Summary
+  ci-summary:
+    name: CI Summary
+    runs-on: ubuntu-latest
+    needs: [lint-and-typecheck, unit-tests, e2e-tests, build]
+    if: always()
+
+    steps:
+      - name: Check job statuses
+        run: |
+          echo "🔍 CI Pipeline Summary"
+          echo "====================="
+          echo "Lint & Type Check: ${{ needs.lint-and-typecheck.result }}"
+          echo "Unit Tests: ${{ needs.unit-tests.result }}"
+          echo "E2E Tests: ${{ needs.e2e-tests.result }}"
+          echo "Production Build: ${{ needs.build.result }}"
+
+          if [[ "${{ needs.lint-and-typecheck.result }}" == "failure" ]] || \
+             [[ "${{ needs.unit-tests.result }}" == "failure" ]] || \
+             [[ "${{ needs.e2e-tests.result }}" == "failure" ]] || \
+             [[ "${{ needs.build.result }}" == "failure" ]]; then
+            echo ""
+            echo "❌ CI Pipeline FAILED"
+            exit 1
+          else
+            echo ""
+            echo "✅ CI Pipeline PASSED"
+          fi

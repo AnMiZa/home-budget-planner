@@ -145,6 +145,46 @@ The project implements a comprehensive testing approach:
 
 For detailed testing documentation, see `.ai/plan-testow.md`.
 
+## CI/CD Pipeline
+
+The project uses GitHub Actions for continuous integration and deployment:
+
+### Quick Start
+
+1. **Configure secrets** - See [.github/SECRETS_SETUP.md](.github/SECRETS_SETUP.md)
+2. **Push to master** - Pipeline runs automatically
+3. **Manual trigger** - Actions → CI Pipeline → Run workflow
+
+### Pipeline Stages
+
+```
+Lint & Type Check → Unit Tests + E2E Tests → Production Build → Summary
+```
+
+**Execution time:** ~5-8 minutes
+
+### Documentation
+
+- 📖 [CI/CD Guide](.github/CI_CD_GUIDE.md) - Complete user guide
+- 📋 [Setup Checklist](.github/SETUP_CHECKLIST.md) - Step-by-step verification
+- 🔑 [Secrets Setup](.github/SECRETS_SETUP.md) - Required GitHub secrets
+- 📊 [Pipeline Summary](.github/CICD_SUMMARY.md) - Architecture overview
+
+### Monitoring
+
+```bash
+# List recent runs
+gh run list --workflow=ci.yml
+
+# Watch live execution
+gh run watch
+
+# Download artifacts
+gh run download <run-id> -n playwright-report
+```
+
+For more details, see [.github/README.md](.github/README.md).
+
 ## Project status
 
 ![Project Status](https://img.shields.io/badge/status-in%20progress-yellow)
