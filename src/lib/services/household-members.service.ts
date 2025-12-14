@@ -89,7 +89,7 @@ export class HouseholdMembersService {
     }
 
     // Map database rows to DTOs
-    const members: HouseholdMemberDto[] = (membersData || []).map((member: any) => ({
+    const members: HouseholdMemberDto[] = (membersData || []).map((member) => ({
       id: member.id,
       fullName: member.full_name,
       isActive: member.is_active,

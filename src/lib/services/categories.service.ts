@@ -97,7 +97,7 @@ export class CategoriesService {
     }
 
     // Map database rows to DTOs
-    const categories: CategoryDto[] = (categoriesData || []).map((category: any) => ({
+    const categories: CategoryDto[] = (categoriesData || []).map((category) => ({
       id: category.id,
       name: category.name,
       createdAt: category.created_at,

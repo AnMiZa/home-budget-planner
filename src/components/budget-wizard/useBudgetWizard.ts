@@ -238,7 +238,7 @@ export function useBudgetWizard({ budgetId, dependencies }: UseBudgetWizardOptio
   const [state, dispatch] = useReducer(budgetWizardReducer, initialState);
   const hasInitiated = useRef(false);
 
-  const api = useMemo(() => createBudgetWizardApi(dependencies ?? {} as UseBudgetWizardDependencies), [dependencies]);
+  const api = useMemo(() => createBudgetWizardApi(dependencies ?? ({} as UseBudgetWizardDependencies)), [dependencies]);
 
   const initialize = useCallback(async () => {
     if (hasInitiated.current) {

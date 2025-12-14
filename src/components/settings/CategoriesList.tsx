@@ -54,14 +54,9 @@ export const CategoriesList = ({
       {/* Pagination for desktop */}
       {meta && meta.totalPages > 1 && (
         <div className="hidden md:block">
-          <PaginationControl
-            meta={meta}
-            onPageChange={onPageChange}
-            isBusy={isLoadingMore}
-          />
+          <PaginationControl meta={meta} onPageChange={onPageChange} isBusy={isLoadingMore} />
         </div>
       )}
     </div>
   );
 };
-

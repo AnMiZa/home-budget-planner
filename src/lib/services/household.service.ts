@@ -75,7 +75,7 @@ export class HouseholdService {
           // Log error but don't fail the entire request
           console.error("Failed to fetch default categories:", categoriesError);
         } else if (categoriesData) {
-          result.defaultCategories = categoriesData.map((category: any) => ({
+          result.defaultCategories = categoriesData.map((category) => ({
             id: category.id,
             name: category.name,
           }));

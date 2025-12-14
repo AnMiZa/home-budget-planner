@@ -146,7 +146,7 @@ export class BudgetsService {
     }
 
     // Map database rows to DTOs
-    let budgets: BudgetListItemDto[] = budgetsData.map((budget: any) => ({
+    let budgets: BudgetListItemDto[] = budgetsData.map((budget) => ({
       id: budget.id,
       month: budget.month,
       note: budget.note,
@@ -160,7 +160,7 @@ export class BudgetsService {
 
     // If summary is requested, fetch aggregated data
     if (includeSummary) {
-      const budgetIds = budgetsData.map((b: any) => b.id);
+      const budgetIds = budgetsData.map((b) => b.id);
       const summaries = await this.getBudgetsSummaries(budgetIds, householdId);
 
       // Merge summaries with budget data
@@ -485,7 +485,7 @@ export class BudgetsService {
       throw new Error("BUDGET_FETCH_FAILED");
     }
 
-    return (data || []).map((income: any) => ({
+    return (data || []).map((income) => ({
       id: income.id,
       householdMemberId: income.household_member_id,
       amount: income.amount,
@@ -513,7 +513,7 @@ export class BudgetsService {
       throw new Error("BUDGET_FETCH_FAILED");
     }
 
-    return (data || []).map((expense: any) => ({
+    return (data || []).map((expense) => ({
       id: expense.id,
       categoryId: expense.category_id,
       limitAmount: expense.limit_amount,
@@ -544,7 +544,7 @@ export class BudgetsService {
       throw new Error("BUDGET_FETCH_FAILED");
     }
 
-    return (data || []).map((transaction: any) => ({
+    return (data || []).map((transaction) => ({
       categoryId: transaction.category_id,
       amount: transaction.amount,
     }));
@@ -580,7 +580,7 @@ export class BudgetsService {
       throw new Error("BUDGET_FETCH_FAILED");
     }
 
-    const categoriesMap = new Map((categoriesData || []).map((category: any) => [category.id, category.name]));
+    const categoriesMap = new Map((categoriesData || []).map((category) => [category.id, category.name]));
 
     // Aggregate transactions by category
     const transactionsByCategory = new Map<string, number>();
@@ -677,7 +677,7 @@ export class BudgetsService {
 
       // Aggregate incomes
       if (incomesData) {
-        incomesData.forEach((income: any) => {
+        incomesData.forEach((income) => {
           const summary = summariesMap.get(income.budget_id);
           if (summary) {
             const updatedSummary = {
@@ -691,7 +691,7 @@ export class BudgetsService {
 
       // Aggregate planned expenses
       if (plannedData) {
-        plannedData.forEach((planned: any) => {
+        plannedData.forEach((planned) => {
           const summary = summariesMap.get(planned.budget_id);
           if (summary) {
             const updatedSummary = {
@@ -705,7 +705,7 @@ export class BudgetsService {
 
       // Aggregate transactions
       if (transactionsData) {
-        transactionsData.forEach((transaction: any) => {
+        transactionsData.forEach((transaction) => {
           const summary = summariesMap.get(transaction.budget_id);
           if (summary) {
             const updatedSummary = {
@@ -759,7 +759,7 @@ export class BudgetsService {
     }
 
     // Check if all members are active
-    const inactiveMembers = members.filter((member: any) => !member.is_active);
+    const inactiveMembers = members.filter((member) => !member.is_active);
     if (inactiveMembers.length > 0) {
       throw new Error("INVALID_MEMBER");
     }
