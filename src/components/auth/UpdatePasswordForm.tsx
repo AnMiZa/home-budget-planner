@@ -67,7 +67,6 @@ export const UpdatePasswordForm = () => {
       }
     >
       <FormField
-        control={form.control}
         name="password"
         render={({ field }) => (
           <FormItem>
@@ -81,7 +80,6 @@ export const UpdatePasswordForm = () => {
       />
 
       <FormField
-        control={form.control}
         name="confirmPassword"
         render={({ field }) => (
           <FormItem>

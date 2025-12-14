@@ -1,4 +1,4 @@
-import type { supabaseClient } from "../../db/supabase.client";
+import type { SupabaseClient } from "../../db/supabase.client";
 import type {
   CategoryDto,
   PaginationMetaDto,
@@ -8,7 +8,7 @@ import type {
   DeleteCategoryCommand,
 } from "../../types";
 
-export type SupabaseClientType = typeof supabaseClient;
+export type SupabaseClientType = SupabaseClient;
 
 export interface ListCategoriesOptions {
   search?: string;
@@ -97,7 +97,7 @@ export class CategoriesService {
     }
 
     // Map database rows to DTOs
-    const categories: CategoryDto[] = (categoriesData || []).map((category) => ({
+    const categories: CategoryDto[] = (categoriesData || []).map((category: any) => ({
       id: category.id,
       name: category.name,
       createdAt: category.created_at,

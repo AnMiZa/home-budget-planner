@@ -99,7 +99,6 @@ export const HouseholdMemberForm = ({
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onFormSubmit)} className="space-y-4">
         <FormField
-          control={form.control}
           name="fullName"
           render={({ field }) => (
             <FormItem>
@@ -142,3 +141,4 @@ export const HouseholdMemberForm = ({
     </Form>
   );
 };
+

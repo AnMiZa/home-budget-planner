@@ -11,7 +11,7 @@ import { Input } from "@/components/ui/input";
 const loginSchema = z.object({
   email: z.string({ required_error: "Adres e-mail jest wymagany." }).email("Podaj poprawny adres e-mail."),
   password: z.string({ required_error: "Hasło jest wymagane." }).min(1, "Hasło jest wymagane."),
-  rememberMe: z.boolean().default(false),
+  rememberMe: z.boolean(),
 });
 
 export type LoginFormValues = z.infer<typeof loginSchema>;
@@ -85,7 +85,6 @@ export const LoginForm = () => {
       }
     >
       <FormField
-        control={form.control}
         name="email"
         render={({ field }) => (
           <FormItem>
@@ -105,7 +104,6 @@ export const LoginForm = () => {
       />
 
       <FormField
-        control={form.control}
         name="password"
         render={({ field }) => (
           <FormItem>
@@ -119,7 +117,6 @@ export const LoginForm = () => {
       />
 
       <FormField
-        control={form.control}
         name="rememberMe"
         render={({ field }) => (
           <FormItem className="space-y-0">

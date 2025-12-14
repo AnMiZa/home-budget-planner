@@ -106,7 +106,7 @@ export const useTransactionsHistory = ({
 
       const payload = (await response.json()) as DashboardSummaryDto;
 
-      return payload.currentBudgetId ?? payload.summary?.budgetId ?? null;
+      return payload.currentBudgetId ?? null;
     } catch (cause) {
       console.error("Failed to fetch current budget summary", cause);
       return null;

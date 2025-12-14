@@ -8,7 +8,7 @@ export interface AddExpenseFormValues {
   readonly amount: string;
   readonly categoryId: string;
   readonly transactionDate: string;
-  readonly note: string;
+  readonly note?: string;
 }
 
 /**

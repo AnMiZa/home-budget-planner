@@ -78,33 +78,40 @@ export const TransactionForm = ({
 
   const onFormSubmit = useCallback(
     async (values: TransactionFormValues) => {
-      const payload: UpdateTransactionCommand = {};
-
       setLocalError(null);
       onClearError?.();
 
+      const payloadParts: {
+        categoryId?: string;
+        amount?: number;
+        transactionDate?: string;
+        note?: string | null;
+      } = {};
+
       if (values.categoryId && values.categoryId !== transaction.categoryId) {
-        payload.categoryId = values.categoryId;
+        payloadParts.categoryId = values.categoryId;
       }
 
       const amountNumber = Number(values.amount);
       if (!Number.isNaN(amountNumber) && amountNumber !== transaction.amount) {
-        payload.amount = Number(amountNumber.toFixed(2));
+        payloadParts.amount = Number(amountNumber.toFixed(2));
       }
 
       if (values.transactionDate && values.transactionDate !== transaction.transactionDate) {
-        payload.transactionDate = values.transactionDate;
+        payloadParts.transactionDate = values.transactionDate;
       }
 
       const sanitizedNote = values.note?.trim() ?? "";
       if (sanitizedNote !== (transaction.note ?? "")) {
-        payload.note = sanitizedNote.length === 0 ? null : sanitizedNote;
+        payloadParts.note = sanitizedNote.length === 0 ? null : sanitizedNote;
       }
 
-      if (Object.keys(payload).length === 0) {
+      if (Object.keys(payloadParts).length === 0) {
         setLocalError("Wprowadź zmiany przed zapisaniem.");
         return;
       }
+
+      const payload: UpdateTransactionCommand = payloadParts as UpdateTransactionCommand;
 
       try {
         await onSubmit(transaction.id, payload);

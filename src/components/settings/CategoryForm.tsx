@@ -92,7 +92,6 @@ export const CategoryForm = ({ category, onSubmit, onCancel, formError, onClearE
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onFormSubmit)} className="space-y-4">
         <FormField
-          control={form.control}
           name="name"
           render={({ field }) => (
             <FormItem>
@@ -135,3 +134,4 @@ export const CategoryForm = ({ category, onSubmit, onCancel, formError, onClearE
     </Form>
   );
 };
+

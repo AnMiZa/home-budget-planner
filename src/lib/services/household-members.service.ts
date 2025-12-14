@@ -1,4 +1,4 @@
-import type { supabaseClient } from "../../db/supabase.client";
+import type { SupabaseClient } from "../../db/supabase.client";
 import type {
   HouseholdMemberDto,
   PaginationMetaDto,
@@ -7,7 +7,7 @@ import type {
   UpdateHouseholdMemberCommand,
 } from "../../types";
 
-export type SupabaseClientType = typeof supabaseClient;
+export type SupabaseClientType = SupabaseClient;
 
 export interface ListMembersOptions {
   includeInactive?: boolean;
@@ -89,7 +89,7 @@ export class HouseholdMembersService {
     }
 
     // Map database rows to DTOs
-    const members: HouseholdMemberDto[] = (membersData || []).map((member) => ({
+    const members: HouseholdMemberDto[] = (membersData || []).map((member: any) => ({
       id: member.id,
       fullName: member.full_name,
       isActive: member.is_active,

@@ -89,7 +89,6 @@ export const AddExpenseForm = ({
       <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4" data-testid="add-expense-form">
         {/* Amount field */}
         <FormField
-          control={form.control}
           name="amount"
           render={({ field }) => (
             <FormItem>
@@ -111,7 +110,6 @@ export const AddExpenseForm = ({
 
         {/* Category field */}
         <FormField
-          control={form.control}
           name="categoryId"
           render={({ field }) => (
             <FormItem>
@@ -148,7 +146,6 @@ export const AddExpenseForm = ({
 
         {/* Transaction Date field */}
         <FormField
-          control={form.control}
           name="transactionDate"
           render={({ field }) => (
             <FormItem className="flex flex-col">
@@ -190,7 +187,6 @@ export const AddExpenseForm = ({
 
         {/* Note field */}
         <FormField
-          control={form.control}
           name="note"
           render={({ field }) => (
             <FormItem>

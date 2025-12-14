@@ -1,7 +1,7 @@
-import type { supabaseClient } from "../../db/supabase.client";
+import type { SupabaseClient } from "../../db/supabase.client";
 import type { HouseholdDto, DefaultCategoryDto, UpdateHouseholdCommand } from "../../types";
 
-export type SupabaseClientType = typeof supabaseClient;
+export type SupabaseClientType = SupabaseClient;
 
 export interface GetHouseholdProfileOptions {
   includeDefaults?: boolean;
@@ -75,7 +75,7 @@ export class HouseholdService {
           // Log error but don't fail the entire request
           console.error("Failed to fetch default categories:", categoriesError);
         } else if (categoriesData) {
-          result.defaultCategories = categoriesData.map((category) => ({
+          result.defaultCategories = categoriesData.map((category: any) => ({
             id: category.id,
             name: category.name,
           }));

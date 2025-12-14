@@ -90,7 +90,6 @@ export const RegisterForm = () => {
       }
     >
       <FormField
-        control={form.control}
         name="email"
         render={({ field }) => (
           <FormItem>
@@ -110,7 +109,6 @@ export const RegisterForm = () => {
       />
 
       <FormField
-        control={form.control}
         name="password"
         render={({ field }) => (
           <FormItem>
@@ -124,7 +122,6 @@ export const RegisterForm = () => {
       />
 
       <FormField
-        control={form.control}
         name="confirmPassword"
         render={({ field }) => (
           <FormItem>

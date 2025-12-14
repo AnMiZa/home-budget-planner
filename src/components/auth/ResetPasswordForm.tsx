@@ -55,7 +55,6 @@ export const ResetPasswordForm = () => {
       }
     >
       <FormField
-        control={form.control}
         name="email"
         render={({ field }) => (
           <FormItem>

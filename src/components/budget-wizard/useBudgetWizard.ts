@@ -234,11 +234,11 @@ function calculateTotals(wizard: BudgetWizardViewModel): BudgetWizardViewModel {
   };
 }
 
-export function useBudgetWizard({ budgetId, dependencies = {} }: UseBudgetWizardOptions): UseBudgetWizardResult {
+export function useBudgetWizard({ budgetId, dependencies }: UseBudgetWizardOptions): UseBudgetWizardResult {
   const [state, dispatch] = useReducer(budgetWizardReducer, initialState);
   const hasInitiated = useRef(false);
 
-  const api = useMemo(() => createBudgetWizardApi(dependencies), [dependencies]);
+  const api = useMemo(() => createBudgetWizardApi(dependencies ?? {} as UseBudgetWizardDependencies), [dependencies]);
 
   const initialize = useCallback(async () => {
     if (hasInitiated.current) {

@@ -32,3 +32,5 @@ export const createSupabaseServerInstance = (context: { headers: Headers; cookie
 
   return supabase;
 };
+
+export type SupabaseClient = ReturnType<typeof createSupabaseServerInstance>;

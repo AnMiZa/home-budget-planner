@@ -47,7 +47,7 @@ export const CategoriesList = ({
       {/* Infinite scroll for mobile */}
       {hasMorePages && (
         <div className="md:hidden">
-          <InfiniteScrollTrigger onLoadMore={handleLoadMore} isLoading={isLoadingMore} />
+          <InfiniteScrollTrigger hasMore={hasMorePages} onLoadMore={handleLoadMore} isLoading={isLoadingMore} />
         </div>
       )}
 
@@ -55,13 +55,13 @@ export const CategoriesList = ({
       {meta && meta.totalPages > 1 && (
         <div className="hidden md:block">
           <PaginationControl
-            currentPage={meta.page}
-            totalPages={meta.totalPages}
+            meta={meta}
             onPageChange={onPageChange}
-            isLoading={isLoadingMore}
+            isBusy={isLoadingMore}
           />
         </div>
       )}
     </div>
   );
 };
+

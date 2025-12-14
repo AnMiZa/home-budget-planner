@@ -65,7 +65,6 @@ export const IncomesForm = ({ incomes, onIncomeChange, onValidityChange, isDisab
         {(form.watch("incomes") ?? []).map((income, index) => (
           <FormField
             key={incomes[index]?.householdMemberId ?? income.householdMemberId}
-            control={form.control}
             name={`incomes.${index}.amount`}
             render={({ field }) => (
               <FormItem>

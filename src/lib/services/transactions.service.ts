@@ -1,7 +1,7 @@
-import type { supabaseClient } from "../../db/supabase.client";
+import type { SupabaseClient } from "../../db/supabase.client";
 import type { TransactionDto, UpdateTransactionCommand } from "../../types";
 
-export type SupabaseClientType = typeof supabaseClient;
+export type SupabaseClientType = SupabaseClient;
 
 /**
  * Service for managing transactions operations.

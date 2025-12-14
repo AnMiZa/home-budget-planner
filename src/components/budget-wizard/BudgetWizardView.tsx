@@ -45,7 +45,7 @@ export const BudgetWizardView = ({ budgetId, dependencies }: BudgetWizardViewPro
     budgetDetail,
     members,
     categories,
-  } = useBudgetWizard({ budgetId, dependencies: dependencies ?? {} });
+  } = useBudgetWizard({ budgetId, dependencies });
 
   console.log("categories", categories);
 

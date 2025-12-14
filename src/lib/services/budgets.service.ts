@@ -1,4 +1,4 @@
-import type { supabaseClient } from "../../db/supabase.client";
+import type { SupabaseClient } from "../../db/supabase.client";
 import type {
   BudgetsListResponseDto,
   BudgetListItemDto,
@@ -28,7 +28,7 @@ import type {
 import type { ListTransactionsFilters } from "../validation/transactions";
 import { createPartialMatchPattern } from "../sql";
 
-export type SupabaseClientType = typeof supabaseClient;
+export type SupabaseClientType = SupabaseClient;
 
 export interface ListBudgetsOptions {
   month?: string;
@@ -146,7 +146,7 @@ export class BudgetsService {
     }
 
     // Map database rows to DTOs
-    let budgets: BudgetListItemDto[] = budgetsData.map((budget) => ({
+    let budgets: BudgetListItemDto[] = budgetsData.map((budget: any) => ({
       id: budget.id,
       month: budget.month,
       note: budget.note,
@@ -160,7 +160,7 @@ export class BudgetsService {
 
     // If summary is requested, fetch aggregated data
     if (includeSummary) {
-      const budgetIds = budgetsData.map((b) => b.id);
+      const budgetIds = budgetsData.map((b: any) => b.id);
       const summaries = await this.getBudgetsSummaries(budgetIds, householdId);
 
       // Merge summaries with budget data
@@ -485,7 +485,7 @@ export class BudgetsService {
       throw new Error("BUDGET_FETCH_FAILED");
     }
 
-    return (data || []).map((income) => ({
+    return (data || []).map((income: any) => ({
       id: income.id,
       householdMemberId: income.household_member_id,
       amount: income.amount,
@@ -513,7 +513,7 @@ export class BudgetsService {
       throw new Error("BUDGET_FETCH_FAILED");
     }
 
-    return (data || []).map((expense) => ({
+    return (data || []).map((expense: any) => ({
       id: expense.id,
       categoryId: expense.category_id,
       limitAmount: expense.limit_amount,
@@ -544,7 +544,7 @@ export class BudgetsService {
       throw new Error("BUDGET_FETCH_FAILED");
     }
 
-    return (data || []).map((transaction) => ({
+    return (data || []).map((transaction: any) => ({
       categoryId: transaction.category_id,
       amount: transaction.amount,
     }));
@@ -580,7 +580,7 @@ export class BudgetsService {
       throw new Error("BUDGET_FETCH_FAILED");
     }
 
-    const categoriesMap = new Map((categoriesData || []).map((category) => [category.id, category.name]));
+    const categoriesMap = new Map((categoriesData || []).map((category: any) => [category.id, category.name]));
 
     // Aggregate transactions by category
     const transactionsByCategory = new Map<string, number>();
@@ -603,7 +603,7 @@ export class BudgetsService {
 
       return {
         categoryId: expense.categoryId,
-        name: categoriesMap.get(expense.categoryId) || "Unknown Category",
+        name: categoriesMap.get(expense.categoryId) ?? "Unknown Category",
         spent,
         limitAmount: expense.limitAmount,
         progress,
@@ -677,7 +677,7 @@ export class BudgetsService {
 
       // Aggregate incomes
       if (incomesData) {
-        incomesData.forEach((income) => {
+        incomesData.forEach((income: any) => {
           const summary = summariesMap.get(income.budget_id);
           if (summary) {
             const updatedSummary = {
@@ -691,7 +691,7 @@ export class BudgetsService {
 
       // Aggregate planned expenses
       if (plannedData) {
-        plannedData.forEach((planned) => {
+        plannedData.forEach((planned: any) => {
           const summary = summariesMap.get(planned.budget_id);
           if (summary) {
             const updatedSummary = {
@@ -705,7 +705,7 @@ export class BudgetsService {
 
       // Aggregate transactions
       if (transactionsData) {
-        transactionsData.forEach((transaction) => {
+        transactionsData.forEach((transaction: any) => {
           const summary = summariesMap.get(transaction.budget_id);
           if (summary) {
             const updatedSummary = {
@@ -759,7 +759,7 @@ export class BudgetsService {
     }
 
     // Check if all members are active
-    const inactiveMembers = members.filter((member) => !member.is_active);
+    const inactiveMembers = members.filter((member: any) => !member.is_active);
     if (inactiveMembers.length > 0) {
       throw new Error("INVALID_MEMBER");
     }

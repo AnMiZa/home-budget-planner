@@ -70,7 +70,6 @@ export const PlannedExpensesForm = ({
         {(form.watch("plannedExpenses") ?? []).map((expense, index) => (
           <FormField
             key={plannedExpenses[index]?.categoryId ?? expense.categoryId}
-            control={form.control}
             name={`plannedExpenses.${index}.limitAmount`}
             render={({ field }) => (
               <FormItem>
