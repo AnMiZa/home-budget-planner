@@ -18,11 +18,11 @@ tests/
 
 ```typescript
 // tests/my-function.test.ts
-import { describe, it, expect } from 'vitest';
-import { myFunction } from '@/lib/my-function';
+import { describe, it, expect } from "vitest";
+import { myFunction } from "@/lib/my-function";
 
-describe('myFunction', () => {
-  it('should return expected result', () => {
+describe("myFunction", () => {
+  it("should return expected result", () => {
     expect(myFunction(input)).toBe(expected);
   });
 });
@@ -62,10 +62,10 @@ renderWithProviders(<MyComponent />);
 Mock Supabase client for tests:
 
 ```typescript
-import { vi } from 'vitest';
-import { mockSupabaseClient } from './mocks/supabase.mock';
+import { vi } from "vitest";
+import { mockSupabaseClient } from "./mocks/supabase.mock";
 
-vi.mock('@/db/supabase.client', () => ({
+vi.mock("@/db/supabase.client", () => ({
   createClient: vi.fn(() => mockSupabaseClient),
 }));
 ```
@@ -75,6 +75,7 @@ vi.mock('@/db/supabase.client', () => ({
 See main [TESTING.md](../TESTING.md) for all available commands.
 
 Quick reference:
+
 ```bash
 npm test                  # Run all unit tests
 npm run test:watch        # Watch mode
@@ -88,4 +89,3 @@ npm run test:coverage     # Generate coverage
 3. **Mock external dependencies**
 4. **Keep tests simple and focused**
 5. **Use descriptive test names**
-

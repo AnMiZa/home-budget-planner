@@ -308,7 +308,7 @@ gh run list --workflow=master.yml --limit 20 --json conclusion | \
 ```bash
 # Ostatnie 10 runs
 gh run list --workflow=master.yml --limit 10 --json createdAt,updatedAt,conclusion | \
-  jq '.[] | select(.conclusion == "success") | 
+  jq '.[] | select(.conclusion == "success") |
     {duration: (((.updatedAt | fromdateiso8601) - (.createdAt | fromdateiso8601)) / 60)}'
 ```
 
@@ -317,7 +317,7 @@ gh run list --workflow=master.yml --limit 10 --json createdAt,updatedAt,conclusi
 ```bash
 # Analiza failów
 gh run list --workflow=master.yml --status=failure --limit 50 --json jobs | \
-  jq '[.[].jobs[] | select(.conclusion == "failure") | .name] | 
+  jq '[.[].jobs[] | select(.conclusion == "failure") | .name] |
     group_by(.) | map({job: .[0], fails: length}) | sort_by(.fails) | reverse'
 ```
 
@@ -416,4 +416,3 @@ gh browse --docs
 **Tip:** Dodaj ten plik do zakładek dla szybkiego dostępu do komend!
 
 **Ostatnia aktualizacja:** 2024-12-14
-

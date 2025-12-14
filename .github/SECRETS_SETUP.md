@@ -4,13 +4,13 @@
 
 Aby uruchomić CI/CD pipeline, musisz skonfigurować **5 secrets** w GitHub:
 
-| Secret Name | Opis | Przykład |
-|------------|------|----------|
-| `PUBLIC_SUPABASE_URL` | URL instancji Supabase | `https://xxxxx.supabase.co` |
-| `PUBLIC_SUPABASE_ANON_KEY` | Klucz publiczny (anon) | `eyJhbGciOiJIUzI1NiIsInR5cCI6...` |
-| `SUPABASE_SERVICE_ROLE_KEY` | Klucz service role (admin) | `eyJhbGciOiJIUzI1NiIsInR5cCI6...` |
-| `E2E_USERNAME` | Email użytkownika testowego | `test@example.com` |
-| `E2E_PASSWORD` | Hasło użytkownika testowego | `TestPass123!` |
+| Secret Name                 | Opis                        | Przykład                          |
+| --------------------------- | --------------------------- | --------------------------------- |
+| `PUBLIC_SUPABASE_URL`       | URL instancji Supabase      | `https://xxxxx.supabase.co`       |
+| `PUBLIC_SUPABASE_ANON_KEY`  | Klucz publiczny (anon)      | `eyJhbGciOiJIUzI1NiIsInR5cCI6...` |
+| `SUPABASE_SERVICE_ROLE_KEY` | Klucz service role (admin)  | `eyJhbGciOiJIUzI1NiIsInR5cCI6...` |
+| `E2E_USERNAME`              | Email użytkownika testowego | `test@example.com`                |
+| `E2E_PASSWORD`              | Hasło użytkownika testowego | `TestPass123!`                    |
 
 ## Krok po kroku
 
@@ -92,16 +92,19 @@ rm .secrets
 Sprawdź czy secrets zostały dodane:
 
 #### Przez UI:
+
 Settings → Secrets and variables → Actions → Repository secrets
 
 Powinieneś zobaczyć 5 secrets (wartości są ukryte).
 
 #### Przez CLI:
+
 ```bash
 gh secret list
 ```
 
 Oczekiwany output:
+
 ```
 E2E_PASSWORD                 Updated YYYY-MM-DD
 E2E_USERNAME                 Updated YYYY-MM-DD
@@ -129,6 +132,7 @@ Jeśli wszystko jest poprawnie skonfigurowane, pipeline powinien przejść przez
 **Przyczyna:** Secret nie został dodany lub ma błędną nazwę.
 
 **Rozwiązanie:**
+
 - Sprawdź dokładną nazwę (case-sensitive!)
 - Upewnij się, że secret jest typu "Repository secret", nie "Environment secret"
 
@@ -137,6 +141,7 @@ Jeśli wszystko jest poprawnie skonfigurowane, pipeline powinien przejść przez
 **Przyczyna:** Błędne dane Supabase lub brak uprawnień.
 
 **Rozwiązanie:**
+
 - Sprawdź czy `PUBLIC_SUPABASE_URL` kończy się na `.supabase.co`
 - Sprawdź czy `SUPABASE_SERVICE_ROLE_KEY` to klucz "service_role", nie "anon"
 - Upewnij się, że projekt Supabase ma włączone Auth
@@ -146,6 +151,7 @@ Jeśli wszystko jest poprawnie skonfigurowane, pipeline powinien przejść przez
 **Przyczyna:** Brakujące secrets dla buildu.
 
 **Rozwiązanie:**
+
 - Upewnij się, że `PUBLIC_SUPABASE_URL` i `PUBLIC_SUPABASE_ANON_KEY` są ustawione
 - Sprawdź czy wartości nie zawierają spacji na początku/końcu
 
@@ -154,6 +160,7 @@ Jeśli wszystko jest poprawnie skonfigurowane, pipeline powinien przejść przez
 **Przyczyna:** Błędne credentials lub użytkownik nie istnieje.
 
 **Rozwiązanie:**
+
 - Sprawdź `E2E_USERNAME` i `E2E_PASSWORD`
 - Upewnij się, że hasło ma min. 8 znaków
 - Uruchom testy ponownie (użytkownik zostanie utworzony automatycznie)
@@ -163,12 +170,14 @@ Jeśli wszystko jest poprawnie skonfigurowane, pipeline powinien przejść przez
 ⚠️ **NIGDY nie commituj secrets do repozytorium!**
 
 ✅ **Dobre praktyki:**
+
 - Używaj różnych projektów Supabase dla dev/test/prod
 - Regularnie rotuj `SUPABASE_SERVICE_ROLE_KEY`
 - Nie udostępniaj secrets przez niezabezpieczone kanały
 - Używaj dedykowanego użytkownika testowego (nie swojego konta)
 
 ❌ **Nie rób tego:**
+
 - Nie dodawaj secrets do plików `.env` w repozytorium
 - Nie loguj wartości secrets w pipeline
 - Nie używaj produkcyjnej bazy do testów E2E
@@ -185,4 +194,3 @@ Jeśli wszystko jest poprawnie skonfigurowane, pipeline powinien przejść przez
 1. Sprawdź logi w zakładce Actions
 2. Przeczytaj [workflows/README.md](./workflows/README.md)
 3. Sprawdź dokumentację testów E2E: `/e2e/README.md`
-

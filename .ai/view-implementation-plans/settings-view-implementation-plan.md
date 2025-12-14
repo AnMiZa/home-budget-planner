@@ -907,4 +907,3 @@ const renderOperationBanner = (result: OperationResult | null) => {
 25. **Dokumentacja**
     - Zaktualizować dokumentację komponentów
     - Dodać komentarze JSDoc
-

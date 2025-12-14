@@ -46,11 +46,13 @@ Ten katalog zawiera konfigurację CI/CD dla projektu Home Budget Planner.
 ### 2. Uruchom pipeline
 
 **Automatycznie:**
+
 ```bash
 git push origin master
 ```
 
 **Manualnie:**
+
 ```bash
 gh workflow run master.yml
 ```
@@ -87,7 +89,7 @@ graph TD
     C --> E[Production Build]
     D --> E
     E --> F[Summary]
-    
+
     style A fill:#e1f5ff
     style B fill:#fff3cd
     style C fill:#d4edda
@@ -103,10 +105,12 @@ graph TD
 ### CI Pipeline (master.yml) - GŁÓWNY
 
 **Trigger:**
+
 - ✅ Automatycznie po push do master/main
 - ✅ Manualnie przez Actions
 
 **Etapy:**
+
 1. Lint & Type Check (~30s)
 2. Unit Tests (~1-2 min)
 3. E2E Tests (~3-5 min)
@@ -114,6 +118,7 @@ graph TD
 5. Summary (~5s)
 
 **Artefakty:**
+
 - Coverage report (30 dni)
 - Playwright report (30 dni)
 - Test results (30 dni)
@@ -122,9 +127,11 @@ graph TD
 ### Quick Check (quick-check.yml) - OPCJONALNY
 
 **Trigger:**
+
 - ✅ Tylko manualnie
 
 **Etapy:**
+
 1. Lint & Type Check
 2. Unit Tests
 3. Production Build
@@ -199,12 +206,14 @@ gh run download <run-id>
 ⚠️ **NIGDY nie commituj secrets do repozytorium!**
 
 ✅ **Używaj GitHub Secrets dla:**
+
 - API keys
 - Passwords
 - Service role keys
 - Inne wrażliwe dane
 
 ✅ **Best practices:**
+
 - Dedykowany projekt Supabase dla testów
 - Regularnie rotuj service role key
 - Monitoruj logi pod kątem wycieków
@@ -224,4 +233,3 @@ gh run download <run-id>
 **Status:** ✅ Gotowe do użycia  
 **Ostatnia aktualizacja:** 2024-12-14  
 **Wersja:** 1.0.0
-

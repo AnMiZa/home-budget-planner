@@ -81,6 +81,7 @@ npm run test:e2e -- --grep "Login"
 **Symptom**: Error message about missing Supabase credentials
 
 **Solution**: Ensure `.env.test` file exists and contains all required variables:
+
 - `PUBLIC_SUPABASE_URL`
 - `SUPABASE_SERVICE_ROLE_KEY`
 - `E2E_USERNAME`
@@ -91,6 +92,7 @@ npm run test:e2e -- --grep "Login"
 **Symptom**: Error about foreign key constraints or missing data
 
 **Solution**: The cleanup function handles foreign key constraints automatically. If this fails, check:
+
 1. Database schema matches the expected structure
 2. Test user exists and has a household
 3. Service role key has sufficient permissions
@@ -100,6 +102,7 @@ npm run test:e2e -- --grep "Login"
 **Symptom**: Teardown process is slow
 
 **Solution**: This is normal if there's a lot of test data. The cleanup deletes data in batches to respect foreign key constraints. Consider:
+
 1. Running fewer tests in parallel
 2. Reducing the amount of test data created during setup
 
@@ -110,4 +113,3 @@ npm run test:e2e -- --grep "Login"
 - `e2e/helpers/database-setup.ts` - Database helper functions
 - `playwright.config.ts` - Playwright configuration
 - `.env.test` - Environment variables (gitignored)
-

@@ -299,4 +299,3 @@ The E2E test suite now has a robust, automated database setup system that:
 ---
 
 **Questions?** Check [DATABASE_SETUP.md](./DATABASE_SETUP.md) or the main [README.md](./README.md).
-

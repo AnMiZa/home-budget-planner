@@ -19,7 +19,7 @@ e2e/
 ```typescript
 // playwright.config.ts
 export default defineConfig({
-  globalSetup: "./e2e/global-setup.ts",      // Before tests
+  globalSetup: "./e2e/global-setup.ts", // Before tests
   globalTeardown: "./e2e/global-teardown.ts", // After tests ✨ NEW
   // ...
 });
@@ -76,6 +76,7 @@ The teardown runs automatically after all tests complete.
 ## Error Handling
 
 If cleanup fails:
+
 - ❌ Error is logged
 - ⚠️ Test run continues (non-blocking)
 - ✅ Tests results are not affected
@@ -89,15 +90,17 @@ If cleanup fails:
 ## Troubleshooting
 
 ### "Missing Supabase credentials"
+
 → Check `.env.test` file exists and has all variables
 
 ### "Failed to authenticate test user"
+
 → Verify credentials in `.env.test` match test user
 
 ### Cleanup takes too long
+
 → Normal with lots of data, respects foreign key constraints
 
 ## That's It!
 
 The teardown works automatically. Just run your tests and enjoy a clean database after each run! 🎉
-

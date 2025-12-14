@@ -52,10 +52,10 @@ tests/
 ### Writing Unit Tests
 
 ```typescript
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect } from "vitest";
 
-describe('MyFunction', () => {
-  it('should return expected value', () => {
+describe("MyFunction", () => {
+  it("should return expected value", () => {
     const result = myFunction(input);
     expect(result).toBe(expected);
   });
@@ -81,10 +81,10 @@ describe('MyComponent', () => {
 ### Mocking Supabase
 
 ```typescript
-import { vi } from 'vitest';
-import { mockSupabaseClient } from '../mocks/supabase.mock';
+import { vi } from "vitest";
+import { mockSupabaseClient } from "../mocks/supabase.mock";
 
-vi.mock('@/db/supabase.client', () => ({
+vi.mock("@/db/supabase.client", () => ({
   createClient: vi.fn(() => mockSupabaseClient),
 }));
 ```
@@ -122,15 +122,15 @@ e2e/
 All E2E tests should use the Page Object Model pattern:
 
 ```typescript
-import { Page, Locator } from '@playwright/test';
-import { BasePage } from './base.page';
+import { Page, Locator } from "@playwright/test";
+import { BasePage } from "./base.page";
 
 export class MyPage extends BasePage {
   readonly myButton: Locator;
 
   constructor(page: Page) {
     super(page);
-    this.myButton = this.getByRole('button', { name: /my button/i });
+    this.myButton = this.getByRole("button", { name: /my button/i });
   }
 
   async clickMyButton() {
@@ -142,11 +142,11 @@ export class MyPage extends BasePage {
 ### Writing E2E Tests
 
 ```typescript
-import { test, expect } from '@playwright/test';
-import { MyPage } from '../pages/my.page';
+import { test, expect } from "@playwright/test";
+import { MyPage } from "../pages/my.page";
 
-test.describe('My Feature', () => {
-  test('should perform action', async ({ page }) => {
+test.describe("My Feature", () => {
+  test("should perform action", async ({ page }) => {
     const myPage = new MyPage(page);
     await myPage.goto();
     await myPage.clickMyButton();
@@ -258,7 +258,7 @@ jobs:
       - uses: actions/checkout@v3
       - uses: actions/setup-node@v3
         with:
-          node-version: '18'
+          node-version: "18"
       - run: npm ci
       - run: npm run lint
       - run: npm test
@@ -345,4 +345,3 @@ If you encounter issues with testing:
 ---
 
 **Last updated**: December 2024
-

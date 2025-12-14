@@ -5,6 +5,7 @@
 ### 1. ✅ Użycie `.nvmrc` dla wersji Node.js
 
 **Przed:**
+
 ```yaml
 - name: Setup Node.js
   uses: actions/setup-node@v4
@@ -14,6 +15,7 @@
 ```
 
 **Po:**
+
 ```yaml
 - name: Setup Node.js
   uses: actions/setup-node@v4
@@ -23,12 +25,14 @@
 ```
 
 **Uzasadnienie:**
+
 - Projekt zawiera plik `.nvmrc` z wersją `22.14.0`
 - Używanie `node-version-file` zapewnia spójność między lokalnym środowiskiem a CI
 - Jedna source of truth dla wersji Node.js
 - Automatyczna aktualizacja w CI po zmianie `.nvmrc`
 
 **Dotyczy plików:**
+
 - `.github/workflows/master.yml` (4 miejsca)
 - `.github/workflows/quick-check.yml` (1 miejsce)
 
@@ -67,6 +71,7 @@
 ## Dodatkowe best practices zastosowane w workflow
 
 ### 1. ✅ Równoległe wykonanie testów
+
 ```yaml
 unit-tests:
   needs: lint-and-typecheck
@@ -74,10 +79,12 @@ unit-tests:
 e2e-tests:
   needs: lint-and-typecheck
 ```
+
 - Unit i E2E testy wykonują się równolegle
 - Oszczędność czasu: ~3-5 minut
 
 ### 2. ✅ Artefakty z odpowiednią retencją
+
 ```yaml
 - name: Upload coverage report
   uses: actions/upload-artifact@v4
@@ -87,20 +94,24 @@ e2e-tests:
     path: coverage/
     retention-days: 30
 ```
+
 - Coverage i raporty: 30 dni
 - Build produkcyjny: 7 dni
 - `if: always()` dla raportów testowych (nawet przy failach)
 
 ### 3. ✅ Conditional execution
+
 ```yaml
 ci-summary:
   needs: [lint-and-typecheck, unit-tests, e2e-tests, build]
   if: always()
 ```
+
 - Summary job zawsze się wykonuje
 - Pokazuje status wszystkich jobów
 
 ### 4. ✅ Cache dependencies
+
 ```yaml
 - name: Setup Node.js
   uses: actions/setup-node@v4
@@ -108,14 +119,17 @@ ci-summary:
     node-version-file: ".nvmrc"
     cache: "npm"
 ```
+
 - Cache npm dependencies
 - Przyspiesza kolejne uruchomienia
 
 ### 5. ✅ Playwright optimization
+
 ```yaml
 - name: Install Playwright browsers
   run: npx playwright install chromium --with-deps
 ```
+
 - Tylko Chromium (szybsze niż multi-browser)
 - `--with-deps` instaluje system dependencies
 
@@ -124,6 +138,7 @@ ci-summary:
 ### 1. Pinowanie wersji akcji do commit SHA
 
 **Obecny stan:**
+
 ```yaml
 uses: actions/checkout@v4
 uses: actions/setup-node@v4
@@ -131,6 +146,7 @@ uses: actions/upload-artifact@v4
 ```
 
 **Możliwa poprawa (zwiększone bezpieczeństwo):**
+
 ```yaml
 uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
 uses: actions/setup-node@60edb5dd545a775178f52524783378180af0d1f8 # v4.0.2
@@ -138,10 +154,12 @@ uses: actions/upload-artifact@5d5d22a31266ced268874388b861e4b58bb5c2f3 # v4.3.1
 ```
 
 **Zalety:**
+
 - Większe bezpieczeństwo (immutable references)
 - Ochrona przed zmianami w tagach
 
 **Wady:**
+
 - Trudniejsze utrzymanie
 - Wymaga regularnych aktualizacji
 - Mniej czytelne
@@ -153,6 +171,7 @@ uses: actions/upload-artifact@5d5d22a31266ced268874388b861e4b58bb5c2f3 # v4.3.1
 **Obecny stan:** Kroki setup (checkout + setup-node + npm ci) powtarzają się w każdym job
 
 **Możliwa poprawa:**
+
 ```yaml
 # .github/actions/setup/action.yml
 name: Setup
@@ -170,17 +189,20 @@ runs:
 ```
 
 **Użycie:**
+
 ```yaml
 steps:
   - uses: ./.github/actions/setup
 ```
 
 **Zalety:**
+
 - DRY (Don't Repeat Yourself)
 - Łatwiejsze utrzymanie
 - Spójność między jobami
 
 **Wady:**
+
 - Dodatkowa złożoność
 - Mniej przejrzystość dla nowych użytkowników
 
@@ -189,6 +211,7 @@ steps:
 ### 3. Matrix strategy dla testów
 
 **Możliwa poprawa:**
+
 ```yaml
 e2e-tests:
   strategy:
@@ -200,10 +223,12 @@ e2e-tests:
 ```
 
 **Zalety:**
+
 - Testowanie na wielu przeglądarkach
 - Większe pokrycie
 
 **Wady:**
+
 - Dłuższy czas wykonania
 - Większe zużycie zasobów CI
 
@@ -212,6 +237,7 @@ e2e-tests:
 ### 4. Dependabot dla akcji
 
 **Dodaj `.github/dependabot.yml`:**
+
 ```yaml
 version: 2
 updates:
@@ -222,6 +248,7 @@ updates:
 ```
 
 **Zalety:**
+
 - Automatyczne aktualizacje akcji
 - Pull requesty z changelog
 - Bezpieczeństwo
@@ -231,11 +258,13 @@ updates:
 ## Podsumowanie zmian
 
 ### Wprowadzone (✅)
+
 - ✅ Użycie `.nvmrc` zamiast hardcoded version
 - ✅ Weryfikacja zgodności z best practices
 - ✅ Dokumentacja zmian
 
 ### Opcjonalne (💡)
+
 - 💡 Pinowanie do commit SHA (dla wysokiego bezpieczeństwa)
 - 💡 Composite actions (dla większych projektów)
 - 💡 Matrix strategy (dla multi-browser testing)
@@ -244,6 +273,7 @@ updates:
 ## Weryfikacja
 
 ### Sprawdź lokalnie:
+
 ```bash
 # Sprawdź wersję Node.js z .nvmrc
 cat .nvmrc
@@ -255,6 +285,7 @@ grep -A 2 "node-version-file" .github/workflows/master.yml
 ```
 
 ### Sprawdź na CI:
+
 1. Uruchom workflow: `gh workflow run master.yml`
 2. Zobacz logi: `gh run watch`
 3. Sprawdź czy Node.js version to 22.14.0
@@ -262,6 +293,7 @@ grep -A 2 "node-version-file" .github/workflows/master.yml
 ## Dokumentacja
 
 Zaktualizowano następujące pliki:
+
 - ✅ `.github/workflows/master.yml` - główny pipeline
 - ✅ `.github/workflows/quick-check.yml` - szybkie sprawdzenie
 - ✅ `.github/workflows/IMPROVEMENTS.md` - ten dokument
@@ -273,4 +305,3 @@ Dokumentacja użytkownika nie wymaga zmian (zmiana transparentna dla użytkownik
 **Data:** 2024-12-14  
 **Autor:** CI/CD Specialist  
 **Status:** ✅ Zaimplementowane i przetestowane
-

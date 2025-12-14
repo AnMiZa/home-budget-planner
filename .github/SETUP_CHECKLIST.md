@@ -181,6 +181,7 @@ Jeśli wszystkie checkboxy są zaznaczone, CI/CD jest w pełni skonfigurowane i 
 ### Problem: Nie widzę workflow w Actions
 
 **Rozwiązanie:**
+
 1. Upewnij się, że plik `master.yml` jest w branch `master` lub `main`
 2. Sprawdź czy nie ma błędów składni YAML
 3. Odśwież stronę Actions
@@ -188,6 +189,7 @@ Jeśli wszystkie checkboxy są zaznaczone, CI/CD jest w pełni skonfigurowane i 
 ### Problem: Secret not found
 
 **Rozwiązanie:**
+
 1. Sprawdź dokładną nazwę secret (case-sensitive!)
 2. Upewnij się, że to "Repository secret", nie "Environment secret"
 3. Sprawdź czy masz uprawnienia do dodawania secrets
@@ -195,6 +197,7 @@ Jeśli wszystkie checkboxy są zaznaczone, CI/CD jest w pełni skonfigurowane i 
 ### Problem: E2E testy failują
 
 **Rozwiązanie:**
+
 1. Sprawdź czy wszystkie 5 secrets są ustawione: `gh secret list`
 2. Zweryfikuj wartości secrets (czy nie ma spacji na początku/końcu)
 3. Sprawdź czy projekt Supabase jest aktywny
@@ -203,6 +206,7 @@ Jeśli wszystkie checkboxy są zaznaczone, CI/CD jest w pełni skonfigurowane i 
 ### Problem: Build failuje
 
 **Rozwiązanie:**
+
 1. Sprawdź czy `PUBLIC_SUPABASE_URL` i `PUBLIC_SUPABASE_ANON_KEY` są ustawione
 2. Uruchom build lokalnie: `npm run build`
 3. Sprawdź logi buildu w Actions
@@ -210,6 +214,7 @@ Jeśli wszystkie checkboxy są zaznaczone, CI/CD jest w pełni skonfigurowane i 
 ### Problem: Długi czas wykonania
 
 **Rozwiązanie:**
+
 1. To normalne przy pierwszym uruchomieniu (instalacja dependencies)
 2. Kolejne uruchomienia będą szybsze dzięki cache
 3. Średni czas: 5-8 minut
@@ -227,4 +232,3 @@ Jeśli wszystkie checkboxy są zaznaczone, CI/CD jest w pełni skonfigurowane i 
 
 **Data utworzenia:** 2024-12-14  
 **Wersja:** 1.0.0
-

@@ -21,6 +21,7 @@ tests/components/auth/
 Komponent wewnętrzny odpowiedzialny za wyświetlanie komunikatów (błędy, sukcesy, info).
 
 **Testowane aspekty:**
+
 - ✅ Renderowanie warunkowe (4 testy)
   - Nie renderuje się dla null/undefined/pustego stringa
   - Renderuje się dla niepustego komunikatu
@@ -38,12 +39,14 @@ Komponent wewnętrzny odpowiedzialny za wyświetlanie komunikatów (błędy, suk
 Testy dla wszystkich schematów walidacji używanych w formularzach auth.
 
 #### LoginSchema (6 testów)
+
 - ✅ Akceptuje poprawny email i hasło
 - ✅ Waliduje format email
 - ✅ Waliduje obecność hasła
 - ✅ Obsługuje pole `rememberMe` (domyślnie false)
 
 #### RegisterSchema (17 testów)
+
 - ✅ Walidacja długości hasła (min. 8 znaków)
 - ✅ Wymaga wielkiej litery (w tym polskie: Ą, Ć, Ę, Ł, Ń, Ó, Ś, Ź, Ż)
 - ✅ Wymaga małej litery (w tym polskie: ą, ć, ę, ł, ń, ó, ś, ź, ż)
@@ -52,10 +55,12 @@ Testy dla wszystkich schematów walidacji używanych w formularzach auth.
 - ✅ Waliduje format email
 
 #### ResetPasswordSchema (5 testów)
+
 - ✅ Waliduje format email
 - ✅ Odrzuca nieprawidłowe formaty (brak @, brak domeny, etc.)
 
 #### UpdatePasswordSchema (7 testów)
+
 - ✅ Te same reguły co RegisterSchema dla hasła
 - ✅ Waliduje dopasowanie haseł
 
@@ -64,6 +69,7 @@ Testy dla wszystkich schematów walidacji używanych w formularzach auth.
 Główny komponent generyczny używany przez wszystkie formularze auth.
 
 **Testowane aspekty:**
+
 - ✅ Renderowanie podstawowe (5 testów)
   - Tytuł, opis, children, submitLabel
 - ✅ Renderowanie footer (3 testy)
@@ -87,11 +93,13 @@ Główny komponent generyczny używany przez wszystkie formularze auth.
 ## 🚀 Uruchamianie testów
 
 ### Wszystkie testy auth
+
 ```bash
 npm run test -- tests/components/auth
 ```
 
 ### Konkretny plik
+
 ```bash
 npm run test -- tests/components/auth/MessageBanner.test.tsx
 npm run test -- tests/components/auth/validation-schemas.test.ts
@@ -99,23 +107,25 @@ npm run test -- tests/components/auth/AuthForm.test.tsx
 ```
 
 ### Z coverage
+
 ```bash
 npm run test -- tests/components/auth --coverage
 ```
 
 ### Watch mode (dla development)
+
 ```bash
 npm run test -- tests/components/auth --watch
 ```
 
 ## 📊 Statystyki
 
-| Komponent | Liczba testów | Status |
-|-----------|---------------|--------|
-| MessageBanner | 11 | ✅ 100% |
-| Validation Schemas | 35 | ✅ 100% |
-| AuthForm | 18 | ✅ 100% |
-| **TOTAL** | **64** | **✅ 100%** |
+| Komponent          | Liczba testów | Status      |
+| ------------------ | ------------- | ----------- |
+| MessageBanner      | 11            | ✅ 100%     |
+| Validation Schemas | 35            | ✅ 100%     |
+| AuthForm           | 18            | ✅ 100%     |
+| **TOTAL**          | **64**        | **✅ 100%** |
 
 ## 🔧 Technologie
 
@@ -127,6 +137,7 @@ npm run test -- tests/components/auth --watch
 ## 📝 Konwencje
 
 ### Struktura testów
+
 ```typescript
 describe("ComponentName", () => {
   describe("Feature/Aspect", () => {
@@ -140,11 +151,13 @@ describe("ComponentName", () => {
 ```
 
 ### Nazewnictwo
+
 - Pliki testowe: `*.test.tsx` lub `*.test.ts`
 - Describe blocks: Nazwa komponentu → Aspekt → Konkretny przypadek
 - Test names: Opisowe, w języku polskim dla komunikatów użytkownika
 
 ### Best Practices
+
 1. **Izolacja** - Każdy test jest niezależny
 2. **Cleanup** - Automatyczny cleanup po każdym teście (setup.ts)
 3. **Accessibility** - Używamy `getByRole`, `getByLabelText` gdzie możliwe
@@ -154,11 +167,13 @@ describe("ComponentName", () => {
 ## 🎓 Dlaczego te testy?
 
 ### Wysokopriorytetowe elementy
+
 1. **MessageBanner** - Prosty, izolowany komponent prezentacyjny z logiką warunkową
 2. **Schematy Zod** - Krytyczna logika biznesowa (bezpieczeństwo, walidacja)
 3. **AuthForm** - Komponent wielokrotnego użytku (4 formularze go używają)
 
 ### Co NIE jest testowane?
+
 - ❌ Komponenty z shadcn/ui (już przetestowane przez bibliotekę)
 - ❌ Proste gettery/settery bez logiki
 - ❌ Stylowanie (to dla testów wizualnych/E2E)
@@ -189,4 +204,3 @@ Przy dodawaniu nowych testów auth:
 - [ ] Sprawdza accessibility (role, aria attributes)
 - [ ] Ma opisową nazwę testu
 - [ ] Przechodzi lokalnie przed commitem
-

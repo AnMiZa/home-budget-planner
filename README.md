@@ -20,26 +20,26 @@ Home Budget Planner is a web application designed with a “mobile-first” appr
 
 ## Tech stack
 
-| Area    | Technology                                                                                                |
-| ------- | --------------------------------------------------------------------------------------------------------- |
-| Runtime | ![Node.js](https://img.shields.io/badge/Node.js-v22.14.0-339933?logo=nodedotjs)                           |
-| CI/CD   | ![GitHub Actions](https://img.shields.io/badge/GitHub_Actions-205081?logo=githubactions&logoColor=ffffff) |
-| Hosting | ![DigitalOcean](https://img.shields.io/badge/DigitalOcean-0080FF?logo=digitalocean&logoColor=white)       |
-| BaaS    | ![Supabase](https://img.shields.io/badge/Supabase-3FCF8E?logo=supabase&logoColor=white)                   |
-| DB      | ![PostgreSQL](https://img.shields.io/badge/PostgreSQL-4169E1?logo=postgresql&logoColor=white)             |
-| FaaS    | ![Edge Functions](https://img.shields.io/badge/Edge%20Functions-3FCF8E?logo=supabase&logoColor=white)     |
-| Storage | ![Supabase Storage](https://img.shields.io/badge/Storage-3FCF8E?logo=supabase&logoColor=white)            |
-| Auth    | ![Supabase Auth](https://img.shields.io/badge/Auth-3FCF8E?logo=supabase&logoColor=white)                  |
-| Meta FW | ![Astro](https://img.shields.io/badge/Astro-FF5D01?logo=astro&logoColor=white)                            |
-| UI FW   | ![React](https://img.shields.io/badge/React-61DAFB?logo=react&logoColor=black)                            |
-| Styling | ![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-06B6D4?logo=tailwindcss&logoColor=white)        |
-| UI      | ![Shadcn/ui](https://img.shields.io/badge/shadcn/ui-000000?logo=shadcnui&logoColor=white)                 |
-| Schema  | ![Zod](https://img.shields.io/badge/Zod-3E67B1?logo=zod&logoColor=white)                                  |
-| Testing | ![Vitest](https://img.shields.io/badge/Vitest-6E9F18?logo=vitest&logoColor=white)                         |
-| E2E     | ![Playwright](https://img.shields.io/badge/Playwright-2EAD33?logo=playwright&logoColor=white)             |
+| Area    | Technology                                                                                                        |
+| ------- | ----------------------------------------------------------------------------------------------------------------- |
+| Runtime | ![Node.js](https://img.shields.io/badge/Node.js-v22.14.0-339933?logo=nodedotjs)                                   |
+| CI/CD   | ![GitHub Actions](https://img.shields.io/badge/GitHub_Actions-205081?logo=githubactions&logoColor=ffffff)         |
+| Hosting | ![DigitalOcean](https://img.shields.io/badge/DigitalOcean-0080FF?logo=digitalocean&logoColor=white)               |
+| BaaS    | ![Supabase](https://img.shields.io/badge/Supabase-3FCF8E?logo=supabase&logoColor=white)                           |
+| DB      | ![PostgreSQL](https://img.shields.io/badge/PostgreSQL-4169E1?logo=postgresql&logoColor=white)                     |
+| FaaS    | ![Edge Functions](https://img.shields.io/badge/Edge%20Functions-3FCF8E?logo=supabase&logoColor=white)             |
+| Storage | ![Supabase Storage](https://img.shields.io/badge/Storage-3FCF8E?logo=supabase&logoColor=white)                    |
+| Auth    | ![Supabase Auth](https://img.shields.io/badge/Auth-3FCF8E?logo=supabase&logoColor=white)                          |
+| Meta FW | ![Astro](https://img.shields.io/badge/Astro-FF5D01?logo=astro&logoColor=white)                                    |
+| UI FW   | ![React](https://img.shields.io/badge/React-61DAFB?logo=react&logoColor=black)                                    |
+| Styling | ![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-06B6D4?logo=tailwindcss&logoColor=white)                |
+| UI      | ![Shadcn/ui](https://img.shields.io/badge/shadcn/ui-000000?logo=shadcnui&logoColor=white)                         |
+| Schema  | ![Zod](https://img.shields.io/badge/Zod-3E67B1?logo=zod&logoColor=white)                                          |
+| Testing | ![Vitest](https://img.shields.io/badge/Vitest-6E9F18?logo=vitest&logoColor=white)                                 |
+| E2E     | ![Playwright](https://img.shields.io/badge/Playwright-2EAD33?logo=playwright&logoColor=white)                     |
 | UI Test | ![React Testing Library](https://img.shields.io/badge/Testing_Library-E33332?logo=testinglibrary&logoColor=white) |
-| Linting | ![ESLint](https://img.shields.io/badge/ESLint-4B32C3?logo=eslint&logoColor=white)                         |
-| Format  | ![Prettier](https://img.shields.io/badge/Prettier-F7B93E?logo=prettier&logoColor=black)                   |
+| Linting | ![ESLint](https://img.shields.io/badge/ESLint-4B32C3?logo=eslint&logoColor=white)                                 |
+| Format  | ![Prettier](https://img.shields.io/badge/Prettier-F7B93E?logo=prettier&logoColor=black)                           |
 
 ## Getting started locally
 
@@ -76,16 +76,16 @@ To get started with this project locally, follow these steps:
 
 In the project directory, you can run the following scripts:
 
-| Script                  | Description                             |
-| ----------------------- | --------------------------------------- |
-| `npm run dev`           | Runs the app in development mode.       |
-| `npm run build`         | Builds the app for production.          |
-| `npm run preview`       | Serves the production build locally.    |
-| `npm run lint`          | Lints the code using ESLint.            |
-| `npm run format`        | Formats the code with Prettier.         |
-| `npm run test:unit`     | Runs unit tests with Vitest.            |
-| `npm run test:e2e`      | Runs E2E tests with Playwright.         |
-| `npm run test:coverage` | Generates test coverage report.         |
+| Script                  | Description                          |
+| ----------------------- | ------------------------------------ |
+| `npm run dev`           | Runs the app in development mode.    |
+| `npm run build`         | Builds the app for production.       |
+| `npm run preview`       | Serves the production build locally. |
+| `npm run lint`          | Lints the code using ESLint.         |
+| `npm run format`        | Formats the code with Prettier.      |
+| `npm run test:unit`     | Runs unit tests with Vitest.         |
+| `npm run test:e2e`      | Runs E2E tests with Playwright.      |
+| `npm run test:coverage` | Generates test coverage report.      |
 
 ## Project scope
 
@@ -127,18 +127,21 @@ In the project directory, you can run the following scripts:
 The project implements a comprehensive testing approach:
 
 ### Unit & Integration Tests
+
 - **Framework**: Vitest
 - **Component Testing**: React Testing Library
 - **Coverage Target**: >80% for business logic
 - **Scope**: Validation schemas, services, utilities, custom hooks, API endpoints
 
 ### End-to-End Tests
+
 - **Framework**: Playwright
 - **Scope**: Complete user journeys, multi-step workflows, responsive design
 - **Devices**: Mobile (Pixel 5, iPhone 13) and Desktop (Chrome)
 - **Target**: All user stories from PRD
 
 ### Continuous Integration
+
 - Tests run automatically on every pull request via GitHub Actions
 - Coverage reports and performance audits included in CI pipeline
 - Regression test suite for critical flows

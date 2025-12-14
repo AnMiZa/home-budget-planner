@@ -9,6 +9,7 @@ Minimalny setup CI/CD dla projektu Home Budget Planner został pomyślnie zaimpl
 ### 1. GitHub Actions Workflows
 
 #### ✅ `master.yml` - Główny pipeline CI/CD
+
 - **Trigger:** Automatycznie po push do master/main + manualne uruchomienie
 - **Etapy:**
   1. Lint & Type Check (~30s)
@@ -21,12 +22,14 @@ Minimalny setup CI/CD dla projektu Home Budget Planner został pomyślnie zaimpl
 - **Artefakty:** Coverage, Playwright reports, Test results, Production build
 
 #### ✅ `quick-check.yml` - Szybkie sprawdzenie
+
 - **Trigger:** Tylko manualne uruchomienie
 - **Etapy:** Lint + Type Check + Unit Tests + Build (bez E2E)
 - **Czas wykonania:** ~2-3 minuty
 - **Użycie:** Szybka weryfikacja zmian podczas development
 
 #### ✅ `test.yml.example` - Szablon
+
 - Zaktualizowany przykładowy workflow z pełną konfiguracją
 - Gotowy do użycia po zmianie nazwy i konfiguracji secrets
 
@@ -107,12 +110,14 @@ Minimalny setup CI/CD dla projektu Home Budget Planner został pomyślnie zaimpl
 **Wymaganie:** Pipeline może być uruchomiony manualnie
 
 **Implementacja:**
+
 - Trigger `workflow_dispatch` w `master.yml`
 - Możliwość uruchomienia przez GitHub UI (Actions → Run workflow)
 - Możliwość uruchomienia przez CLI: `gh workflow run master.yml`
 - Dodatkowy workflow `quick-check.yml` tylko do manualnego uruchomienia
 
 **Dokumentacja:**
+
 - CI_CD_GUIDE.md - sekcja "Jak uruchomić"
 - COMMANDS_CHEATSHEET.md - wszystkie komendy
 
@@ -121,11 +126,13 @@ Minimalny setup CI/CD dla projektu Home Budget Planner został pomyślnie zaimpl
 **Wymaganie:** Pipeline uruchamia się automatycznie po push do master
 
 **Implementacja:**
+
 - Trigger `push: branches: [main, master]` w `master.yml`
 - Automatyczne uruchomienie przy każdym push do master/main
 - Brak potrzeby manualnej interwencji
 
 **Dokumentacja:**
+
 - CI_CD_GUIDE.md - sekcja "Automatyczne uruchomienie"
 - CICD_SUMMARY.md - diagram flow
 
@@ -134,6 +141,7 @@ Minimalny setup CI/CD dla projektu Home Budget Planner został pomyślnie zaimpl
 **Wymaganie:** Potwierdzenie poprawnego działania testów
 
 **Implementacja:**
+
 - Job "Unit & Integration Tests" - Vitest
   - Uruchamia wszystkie testy jednostkowe
   - Generuje raport coverage
@@ -146,6 +154,7 @@ Minimalny setup CI/CD dla projektu Home Budget Planner został pomyślnie zaimpl
 - Artefakty z raportami (30 dni retencji)
 
 **Dokumentacja:**
+
 - workflows/README.md - szczegóły konfiguracji testów
 - CI_CD_GUIDE.md - jak analizować wyniki
 
@@ -154,6 +163,7 @@ Minimalny setup CI/CD dla projektu Home Budget Planner został pomyślnie zaimpl
 **Wymaganie:** Potwierdzenie poprawnego buildu produkcyjnego
 
 **Implementacja:**
+
 - Job "Production Build"
   - Uruchamia `npm run build`
   - Weryfikuje poprawność buildu
@@ -163,6 +173,7 @@ Minimalny setup CI/CD dla projektu Home Budget Planner został pomyślnie zaimpl
 - Uruchamia się tylko po przejściu testów (needs: [unit-tests, e2e-tests])
 
 **Dokumentacja:**
+
 - CI_CD_GUIDE.md - sekcja "Production Build"
 - CICD_SUMMARY.md - architektura pipeline
 
@@ -199,23 +210,23 @@ Minimalny setup CI/CD dla projektu Home Budget Planner został pomyślnie zaimpl
 
 ### Czas wykonania
 
-| Etap | Czas | % całości |
-|------|------|-----------|
-| Lint & Type Check | 30s | 8% |
-| Unit Tests | 1-2 min | 25% |
-| E2E Tests | 3-5 min | 60% |
-| Build | 1-2 min | 20% |
-| Summary | 5s | 1% |
-| **TOTAL** | **5-8 min** | **100%** |
+| Etap              | Czas        | % całości |
+| ----------------- | ----------- | --------- |
+| Lint & Type Check | 30s         | 8%        |
+| Unit Tests        | 1-2 min     | 25%       |
+| E2E Tests         | 3-5 min     | 60%       |
+| Build             | 1-2 min     | 20%       |
+| Summary           | 5s          | 1%        |
+| **TOTAL**         | **5-8 min** | **100%**  |
 
 ### Artefakty
 
-| Nazwa | Zawartość | Retencja |
-|-------|-----------|----------|
-| coverage-report | Raport pokrycia kodu | 30 dni |
-| playwright-report | Raport E2E testów | 30 dni |
-| test-results | JUnit XML results | 30 dni |
-| dist | Production build | 7 dni |
+| Nazwa             | Zawartość            | Retencja |
+| ----------------- | -------------------- | -------- |
+| coverage-report   | Raport pokrycia kodu | 30 dni   |
+| playwright-report | Raport E2E testów    | 30 dni   |
+| test-results      | JUnit XML results    | 30 dni   |
+| dist              | Production build     | 7 dni    |
 
 ## 🎓 Jak zacząć
 
@@ -300,6 +311,7 @@ Przykłady w [workflows/README.md](.github/workflows/README.md) - sekcja "Rozsze
 ✅ **Cel osiągnięty w 100%**
 
 Minimalny setup CI/CD został w pełni zaimplementowany zgodnie z wymaganiami:
+
 - ✅ Automatyczne uruchamianie po push do master
 - ✅ Możliwość manualnego uruchomienia
 - ✅ Weryfikacja testów (Unit + E2E)
@@ -315,4 +327,3 @@ Minimalny setup CI/CD został w pełni zaimplementowany zgodnie z wymaganiami:
 **Implementował:** CI/CD Specialist  
 **Status:** ✅ Gotowe do użycia  
 **Wersja:** 1.0.0
-

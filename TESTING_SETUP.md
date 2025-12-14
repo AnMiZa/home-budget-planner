@@ -87,11 +87,11 @@ Create a file ending in `.test.ts` or `.test.tsx`:
 
 ```typescript
 // src/lib/utils.test.ts
-import { describe, it, expect } from 'vitest';
-import { myFunction } from './utils';
+import { describe, it, expect } from "vitest";
+import { myFunction } from "./utils";
 
-describe('myFunction', () => {
-  it('should work correctly', () => {
+describe("myFunction", () => {
+  it("should work correctly", () => {
     expect(myFunction(input)).toBe(expected);
   });
 });
@@ -118,11 +118,11 @@ describe('Button', () => {
 
 ```typescript
 // e2e/my-feature.spec.ts
-import { test, expect } from '@playwright/test';
+import { test, expect } from "@playwright/test";
 
-test('my feature works', async ({ page }) => {
-  await page.goto('/my-page');
-  await page.getByRole('button', { name: /click/i }).click();
+test("my feature works", async ({ page }) => {
+  await page.goto("/my-page");
+  await page.getByRole("button", { name: /click/i }).click();
   await expect(page).toHaveURL(/success/);
 });
 ```
@@ -138,6 +138,7 @@ test('my feature works', async ({ page }) => {
 ## 🎯 Best Practices Applied
 
 ### Vitest Configuration
+
 - ✅ Global test utilities configured
 - ✅ jsdom environment for DOM testing
 - ✅ 80% coverage thresholds
@@ -146,6 +147,7 @@ test('my feature works', async ({ page }) => {
 - ✅ Mock window.matchMedia, IntersectionObserver, ResizeObserver
 
 ### Playwright Configuration
+
 - ✅ Chromium only (Desktop + Mobile)
 - ✅ Mobile-first testing enabled
 - ✅ Auto-waiting for elements
@@ -159,12 +161,14 @@ test('my feature works', async ({ page }) => {
 ### Coverage Thresholds
 
 All code must meet 80% coverage for:
+
 - Lines
 - Functions
 - Branches
 - Statements
 
 Excluded from coverage:
+
 - node_modules, tests, e2e
 - Type definitions (.d.ts)
 - Config files
@@ -180,6 +184,7 @@ Excluded from coverage:
 ## 🐛 Debugging
 
 ### Unit Tests
+
 ```bash
 npm run test:ui              # Visual interface
 npm run test:watch           # Watch mode
@@ -187,6 +192,7 @@ npm run test -- --reporter=verbose  # Detailed output
 ```
 
 ### E2E Tests
+
 ```bash
 npm run test:e2e:debug       # Step through tests
 npm run test:e2e:headed      # See browser
@@ -247,23 +253,29 @@ Example GitHub Actions snippet:
 ## 🚨 Common Issues
 
 ### Port Already in Use
+
 If E2E tests fail with port error:
+
 ```bash
 # Kill process on port 4321
 lsof -ti:4321 | xargs kill -9
 ```
 
 ### Coverage Not Collected
+
 Ensure your files are:
+
 - Not in excluded directories
 - Imported in tests
 - Not in `.gitignore`
 
 ### Tests Timing Out
+
 Increase timeout in config:
+
 ```typescript
 // vitest.config.ts or playwright.config.ts
-timeout: 60000 // 60 seconds
+timeout: 60000; // 60 seconds
 ```
 
 ---
@@ -271,4 +283,3 @@ timeout: 60000 // 60 seconds
 **Environment Status:** ✅ Ready for testing
 
 All testing infrastructure is in place and working correctly. Start writing tests!
-

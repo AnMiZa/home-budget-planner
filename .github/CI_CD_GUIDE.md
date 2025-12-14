@@ -3,6 +3,7 @@
 ## 🎯 Cel
 
 Minimalny setup CI/CD zapewniający:
+
 - ✅ Automatyczne uruchamianie testów po push do master
 - ✅ Możliwość manualnego uruchomienia
 - ✅ Weryfikację poprawności buildu produkcyjnego
@@ -23,6 +24,7 @@ Minimalny setup CI/CD zapewniający:
 Przejdź do [SECRETS_SETUP.md](./SECRETS_SETUP.md) i skonfiguruj wymagane secrets w GitHub.
 
 **Wymagane secrets (5):**
+
 - `PUBLIC_SUPABASE_URL`
 - `PUBLIC_SUPABASE_ANON_KEY`
 - `SUPABASE_SERVICE_ROLE_KEY`
@@ -32,6 +34,7 @@ Przejdź do [SECRETS_SETUP.md](./SECRETS_SETUP.md) i skonfiguruj wymagane secret
 ### Krok 2: Uruchom pipeline
 
 **Opcja A - Automatycznie:**
+
 ```bash
 git add .
 git commit -m "feat: add new feature"
@@ -39,6 +42,7 @@ git push origin master
 ```
 
 **Opcja B - Manualnie:**
+
 1. Otwórz GitHub → Actions
 2. Wybierz "CI Pipeline"
 3. Kliknij "Run workflow"
@@ -52,10 +56,12 @@ Przejdź do zakładki **Actions** i obserwuj postęp.
 ### 1. CI Pipeline (`master.yml`) - GŁÓWNY
 
 **Kiedy uruchamiany:**
+
 - ✅ Automatycznie po push do `master` lub `main`
 - ✅ Manualnie przez Actions → Run workflow
 
 **Co robi:**
+
 ```
 Lint & Type Check
        ↓
@@ -73,6 +79,7 @@ Production Build
 **Czas wykonania:** ~5-8 minut
 
 **Kiedy używać:**
+
 - Przed merge do master
 - Po wprowadzeniu istotnych zmian
 - Przed release
@@ -82,15 +89,18 @@ Production Build
 ### 2. Quick Check (`quick-check.yml`) - OPCJONALNY
 
 **Kiedy uruchamiany:**
+
 - ✅ Tylko manualnie
 
 **Co robi:**
+
 - Lint + Type Check + Unit Tests + Build
 - **Bez E2E testów** (szybsze)
 
 **Czas wykonania:** ~2-3 minuty
 
 **Kiedy używać:**
+
 - Szybka weryfikacja zmian
 - Podczas development
 - Gdy E2E testy nie są konieczne
@@ -102,6 +112,7 @@ Production Build
 **Status:** Nieaktywny (przykład)
 
 **Jak aktywować:**
+
 1. Zmień nazwę na `test.yml`
 2. Dostosuj konfigurację
 3. Commit i push
@@ -179,6 +190,7 @@ npm run build
 ```
 
 **Fail jeśli:**
+
 - Błędy ESLint
 - Błędy typów TypeScript
 
@@ -194,10 +206,12 @@ npm run build
 ```
 
 **Fail jeśli:**
+
 - Jakikolwiek test failuje
 - Coverage < 80% (opcjonalnie)
 
 **Artefakty:**
+
 - `coverage-report/` (30 dni)
 
 ---
@@ -212,11 +226,13 @@ npm run build
 ```
 
 **Fail jeśli:**
+
 - Jakikolwiek test E2E failuje
 - Timeout podczas global-setup
 - Błąd połączenia z Supabase
 
 **Artefakty:**
+
 - `playwright-report/` (30 dni)
 - `test-results/` (30 dni)
 
@@ -232,10 +248,12 @@ npm run build
 ```
 
 **Fail jeśli:**
+
 - Błąd podczas buildu
 - Brakujące zmienne środowiskowe
 
 **Artefakty:**
+
 - `dist/` (7 dni)
 
 ---
@@ -260,6 +278,7 @@ npm run build
 3. Kliknij na konkretny run aby zobaczyć szczegóły
 
 **Status indicators:**
+
 - 🟢 Zielony checkmark = Success
 - 🔴 Czerwony X = Failure
 - 🟡 Żółty kółko = In progress
@@ -358,6 +377,7 @@ gh secret list
 **Przyczyna:** Brakujące secrets
 
 **Rozwiązanie:**
+
 ```bash
 # Sprawdź secrets
 gh secret list
@@ -372,6 +392,7 @@ gh secret set PUBLIC_SUPABASE_ANON_KEY
 **Przyczyna:** Aplikacja nie startuje lub Supabase niedostępny
 
 **Rozwiązanie:**
+
 1. Sprawdź logi z kroku "Run E2E tests"
 2. Zweryfikuj `SUPABASE_SERVICE_ROLE_KEY`
 3. Sprawdź czy projekt Supabase jest aktywny
@@ -381,6 +402,7 @@ gh secret set PUBLIC_SUPABASE_ANON_KEY
 **Przyczyna:** Różnice w środowisku
 
 **Rozwiązanie:**
+
 ```bash
 # Lokalnie użyj dokładnie tych samych komend co CI
 npm ci  # zamiast npm install
@@ -395,6 +417,7 @@ node -v  # powinna być 20.x
 **Przyczyna:** Błędy typów nie wykryte lokalnie
 
 **Rozwiązanie:**
+
 ```bash
 # Uruchom type check lokalnie
 npx tsc --noEmit
@@ -406,30 +429,33 @@ npx tsc --noEmit
 
 ### Średnie czasy wykonania
 
-| Etap | Czas | % całości |
-|------|------|-----------|
-| Lint & Type Check | 30s | 8% |
-| Unit Tests | 1-2 min | 25% |
-| E2E Tests | 3-5 min | 60% |
-| Build | 1-2 min | 20% |
-| **TOTAL** | **5-8 min** | **100%** |
+| Etap              | Czas        | % całości |
+| ----------------- | ----------- | --------- |
+| Lint & Type Check | 30s         | 8%        |
+| Unit Tests        | 1-2 min     | 25%       |
+| E2E Tests         | 3-5 min     | 60%       |
+| Build             | 1-2 min     | 20%       |
+| **TOTAL**         | **5-8 min** | **100%**  |
 
 ### Jak przyspieszyć pipeline
 
 1. **Cache dependencies** (już włączone)
+
    ```yaml
-   cache: 'npm'  # ✅ Aktywne
+   cache: "npm" # ✅ Aktywne
    ```
 
 2. **Równoległe testy** (już włączone)
+
    ```yaml
-   Unit i E2E równolegle  # ✅ Aktywne
+   Unit i E2E równolegle # ✅ Aktywne
    ```
 
 3. **Ograniczenie E2E** (już włączone)
+
    ```yaml
-   workers: 1 na CI  # ✅ Aktywne
-   retries: 2        # ✅ Aktywne
+   workers: 1 na CI # ✅ Aktywne
+   retries: 2 # ✅ Aktywne
    ```
 
 4. **Selective testing** (do rozważenia)
@@ -443,12 +469,14 @@ npx tsc --noEmit
 ### Best practices
 
 ✅ **DO:**
+
 - Używaj secrets dla wszystkich wrażliwych danych
 - Regularnie rotuj `SUPABASE_SERVICE_ROLE_KEY`
 - Używaj dedykowanego projektu Supabase dla testów
 - Monitoruj logi pod kątem wycieków danych
 
 ❌ **DON'T:**
+
 - Nie loguj wartości secrets
 - Nie commituj `.env` files
 - Nie używaj produkcyjnej bazy do testów
@@ -486,4 +514,3 @@ Jeśli pipeline nie działa:
 
 **Ostatnia aktualizacja:** 2024-12-14
 **Wersja:** 1.0.0
-

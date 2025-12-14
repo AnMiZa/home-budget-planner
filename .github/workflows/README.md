@@ -27,6 +27,7 @@ Projekt wykorzystuje **GitHub Actions** do automatyzacji testów i buildów. Pip
 ### 1. CI Pipeline (`master.yml`)
 
 **Uruchamiany:**
+
 - Automatycznie po push do `master` lub `main`
 - Manualnie przez zakładkę "Actions" w GitHub (workflow_dispatch)
 
@@ -67,6 +68,7 @@ SUPABASE_SERVICE_ROLE_KEY
 ```
 
 **Jak uzyskać:**
+
 1. Zaloguj się do [Supabase Dashboard](https://app.supabase.com)
 2. Wybierz projekt (lub stwórz dedykowany projekt testowy)
 3. Przejdź do Settings → API
@@ -83,6 +85,7 @@ E2E_PASSWORD
 ```
 
 **Wartości:**
+
 - `E2E_USERNAME`: Email użytkownika testowego (np. `test@example.com`)
 - `E2E_PASSWORD`: Hasło użytkownika testowego (min. 8 znaków)
 
@@ -141,24 +144,28 @@ Pipeline generuje następujące artefakty (dostępne przez 7-30 dni):
 ### E2E testy kończą się błędem "Cannot connect to database"
 
 **Rozwiązanie:**
+
 - Sprawdź czy secrets Supabase są poprawnie skonfigurowane
 - Upewnij się, że `SUPABASE_SERVICE_ROLE_KEY` ma uprawnienia do tworzenia użytkowników
 
 ### Build kończy się błędem "Missing environment variables"
 
 **Rozwiązanie:**
+
 - Sprawdź czy `PUBLIC_SUPABASE_URL` i `PUBLIC_SUPABASE_ANON_KEY` są ustawione
 - Upewnij się, że secrets nie zawierają spacji na początku/końcu
 
 ### Testy jednostkowe failują lokalnie ale przechodzą na CI
 
 **Rozwiązanie:**
+
 - Uruchom `npm ci` zamiast `npm install` (czyste środowisko)
 - Sprawdź wersję Node.js: `node -v` (powinna być 20.x)
 
 ### Playwright timeout podczas global-setup
 
 **Rozwiązanie:**
+
 - Zwiększ timeout w `playwright.config.ts` dla `webServer`
 - Sprawdź logi czy aplikacja startuje poprawnie
 - Upewnij się, że port 4321 nie jest zablokowany
@@ -188,6 +195,7 @@ npm run build
 ### Przyspieszenie pipeline
 
 Obecna konfiguracja:
+
 - Unit i E2E testy uruchamiają się równolegle
 - Cache npm dependencies
 - Tylko Chromium dla E2E (szybsze niż multi-browser)
@@ -212,13 +220,13 @@ deploy:
   runs-on: ubuntu-latest
   needs: build
   if: github.ref == 'refs/heads/master'
-  
+
   steps:
     - name: Download build artifacts
       uses: actions/download-artifact@v4
       with:
         name: dist
-    
+
     - name: Deploy to DigitalOcean
       # ... deployment steps
 ```
@@ -238,12 +246,14 @@ Aby otrzymywać powiadomienia o statusie pipeline:
 ## Best Practices
 
 ✅ **DO:**
+
 - Zawsze uruchamiaj pipeline przed merge do master
 - Monitoruj czas wykonania i optymalizuj wolne joby
 - Regularnie przeglądaj raporty coverage
 - Utrzymuj secrets aktualne i bezpieczne
 
 ❌ **DON'T:**
+
 - Nie commituj secrets do repozytorium
 - Nie skipuj testów aby przyspieszyć pipeline
 - Nie używaj `--force` przy push do master
@@ -252,7 +262,7 @@ Aby otrzymywać powiadomienia o statusie pipeline:
 ## Kontakt
 
 W razie problemów z CI/CD:
+
 1. Sprawdź logi w zakładce Actions
 2. Przejrzyj sekcję Troubleshooting
 3. Sprawdź dokumentację testów: `/e2e/README.md`
-
